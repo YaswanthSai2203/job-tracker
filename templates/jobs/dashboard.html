@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<form method="POST" enctype="multipart/form-data" class="mb-4 bg-body p-4 rounded shadow-sm">
+    <div class="row g-3">
+        <div class="col-md-3"><input type="text" name="company" class="form-control" placeholder="Company Name" required></div>
+        <div class="col-md-3"><input type="url" name="link" class="form-control" placeholder="Job Link" required></div>
+        <div class="col-md-3"><input type="file" name="resume" accept=".pdf" class="form-control" required></div>
+        <div class="col-md-3"><input type="date" name="deadline" class="form-control" placeholder="Deadline"></div>
+    </div>
+    <div class="mt-3">
+        <textarea name="notes" rows="2" class="form-control" placeholder="Notes (e.g., Followed up on LinkedIn, scheduled call)"></textarea>
+    </div>
+    <div class="mt-3"><button type="submit" class="btn btn-primary">Submit</button></div>
+</form>
+
+<form method="get" class="row mb-3 g-2">
+    <div class="col-md-4"><input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Search company..."></div>
+    <div class="col-md-3">
+        <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            {% for s in ['Under Consideration', 'Review', 'Rejected', 'Interviewing', 'Offered'] %}
+                <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3"><button class="btn btn-outline-primary">Filter</button></div>
+    <div class="col-md-2"><a href="{{ url_for('jobs.download_excel') }}" class="btn btn-success w-100">📄 Full Export</a></div>
+</form>
+
+{% for job in jobs %}
+    <div class="job-card">
+        <div class="d-flex justify-content-between">
+            <div>
+                <h5>{{ job.company }}</h5>
+                <a href="{{ job.link }}" target="_blank">🔗 Job Link</a><br>
+                <div class="mt-2 mb-1">
+                    <a href="{{ url_for('jobs.preview_resume', filename=job.resume_filename) }}" target="_blank" class="btn btn-sm btn-outline-info">👁️ Preview</a>
+                    <a href="{{ url_for('jobs.download_resume', filename=job.resume_filename) }}" class="btn btn-sm btn-outline-dark">📄 Download</a>
+                    <a href="{{ url_for('jobs.export_single', job_id=job.id) }}" class="btn btn-sm btn-outline-secondary">📥 Export</a>
+                </div>
+                <small class="text-muted">Submitted: {{ job.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small><br>
+                {% if job.notes %}
+                    <small class="text-muted d-block"><strong>Note:</strong> {{ job.notes }}</small>
+                {% endif %}
+                {% if job.deadline %}
+                    <small class="text-muted d-block"><strong>Deadline:</strong> {{ job.deadline.strftime('%Y-%m-%d') }}</small>
+                {% endif %}
+            </div>
+            <form method="POST" class="d-flex align-items-center status-form">
+                <input type="hidden" name="job_id" value="{{ job.id }}">
+                <input type="hidden" name="update_status" value="1">
+                <select name="status" class="form-select form-select-sm status-select me-2">
+                    {% for s in ['Under Consideration', 'Review', 'Rejected', 'Interviewing', 'Offered'] %}
+                        <option {{ 'selected' if job.status == s else '' }}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-outline-primary btn-sm">Update</button>
+            </form>
+        </div>
+        <div class="mt-2 d-flex justify-content-between align-items-center">
+            {% set status_colors = {
+              'Under Consideration': 'secondary',
+              'Review': 'primary',
+              'Interviewing': 'warning',
+              'Offered': 'success',
+              'Rejected': 'danger'
+            } %}
+            <span class="badge bg-{{ status_colors[job.status] or 'light' }}">{{ job.status }}</span>
+        </div>
+    </div>
+{% endfor %}
+
+{% if total_pages > 1 %}
+<nav>
+    <ul class="pagination mt-4">
+        {% for p in range(1, total_pages + 1) %}
+            <li class="page-item {% if page == p %}active{% endif %}">
+                <a class="page-link" href="?search={{ search }}&status={{ status_filter }}&page={{ p }}">{{ p }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
