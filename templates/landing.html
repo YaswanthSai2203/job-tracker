@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+
+<style>
+  .hero {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    background: linear-gradient(135deg, #dff1ff, #f4d3ff);
+    padding: 2rem;
+  }
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #0d6efd;
+  }
+  .hero p {
+    font-size: 1.2rem;
+    margin: 1rem 0 2rem;
+    color: #333;
+  }
+  .hero img {
+    max-width: 450px;
+    margin-bottom: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+</style>
+
+<div class="hero">
+  <!-- You can replace the image with a Lottie animation using <lottie-player> -->
+  <img src="https://via.placeholder.com/450x300.png?text=App+Screenshot" alt="Job Tracker Screenshot">
+  <h1>Welcome to Job Tracker</h1>
+  <p>Your personal space to manage and track all your job applications with ease.</p>
+  <a href="{{ url_for('auth.signup') }}" class="btn btn-lg btn-primary px-4 py-2">
+    🚀 Start Tracking Jobs
+  </a>
+</div>
+
+{% endblock %}

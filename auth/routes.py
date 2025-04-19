@@ -1,12 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash
-from flask_login import login_user, logout_user, login_required
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
+from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models.models import db, User
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
-from werkzeug.security import generate_password_hash
-from models.models import db, User
-from flask import current_app
-
 
 auth_bp = Blueprint('auth', __name__, template_folder='../templates/auth')
 
@@ -43,7 +39,27 @@ def signup():
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
-# Reset Password Request
+
+@auth_bp.route('/settings/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current = request.form.get('current_password')
+        new = request.form.get('new_password')
+        confirm = request.form.get('confirm_password')
+
+        if not check_password_hash(current_user.password, current):
+            flash("Current password is incorrect", "danger")
+        elif new != confirm:
+            flash("New passwords do not match", "warning")
+        else:
+            current_user.password = generate_password_hash(new)
+            db.session.commit()
+            flash("Password updated successfully", "success")
+            return redirect(url_for('jobs.dashboard'))
+
+    return render_template('auth/change_password.html')
+
 @auth_bp.route('/reset-password', methods=['GET', 'POST'])
 def reset_request():
     if request.method == 'POST':
@@ -53,15 +69,13 @@ def reset_request():
             s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
             token = s.dumps(email, salt='password-reset-salt')
             reset_link = url_for('auth.reset_token', token=token, _external=True)
-            print(f"[Password Reset Link] {reset_link}")
-            flash('Reset link sent! Check your console.', 'info')
+            print(f"[Reset Link] {reset_link}")
+            flash('Password reset link sent! Check your console.', 'info')
         else:
             flash('Email not found', 'danger')
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_request.html')
 
-
-# Reset Password Form
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_token(token):
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
