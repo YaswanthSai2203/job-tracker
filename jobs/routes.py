@@ -1,12 +1,12 @@
 import os
 import re
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, abort
+from flask import Blueprint, render_template, request, redirect, url_for, send_file, abort, current_app
 from flask_login import login_required, current_user
 from models.models import db, Job
 from datetime import datetime
 from math import ceil
 import pandas as pd
-from collections import Counter
+
 jobs_bp = Blueprint('jobs', __name__, template_folder='../templates/jobs')
 
 def sanitize_filename(name):
@@ -33,7 +33,9 @@ def dashboard():
 
             if company and link and resume:
                 filename = f"{sanitize_filename(company)}_resume{os.path.splitext(resume.filename)[1]}"
-                filepath = os.path.join('uploads', filename)
+                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+
+                # Save file
                 resume.save(filepath)
 
                 job = Job(
@@ -75,7 +77,7 @@ def dashboard():
 @jobs_bp.route('/resume/<filename>')
 @login_required
 def download_resume(filename):
-    path = os.path.join('uploads', filename)
+    path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
     abort(404)
@@ -83,7 +85,7 @@ def download_resume(filename):
 @jobs_bp.route('/preview_resume/<filename>')
 @login_required
 def preview_resume(filename):
-    path = os.path.join('uploads', filename)
+    path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     if os.path.exists(path):
         return send_file(path)
     abort(404)
@@ -102,7 +104,7 @@ def export_single(job_id):
         'Deadline': job.deadline.strftime('%Y-%m-%d') if job.deadline else ''
     }]
     df = pd.DataFrame(data)
-    path = os.path.join('uploads', f'job_{job.id}.xlsx')
+    path = os.path.join(current_app.config['UPLOAD_FOLDER'], f'job_{job.id}.xlsx')
     df.to_excel(path, index=False)
     return send_file(path, as_attachment=True)
 
@@ -121,6 +123,6 @@ def download_excel():
     } for j in jobs]
 
     df = pd.DataFrame(data)
-    path = os.path.join('uploads', 'job_applications.xlsx')
+    path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'job_applications.xlsx')
     df.to_excel(path, index=False)
     return send_file(path, as_attachment=True)
