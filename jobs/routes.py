@@ -1,20 +1,31 @@
 import os
 import re
+import pandas as pd
 from flask import Blueprint, render_template, request, redirect, url_for, send_file, abort, current_app
 from flask_login import login_required, current_user
 from models.models import db, Job
 from datetime import datetime
 from math import ceil
-import pandas as pd
 
 jobs_bp = Blueprint('jobs', __name__, template_folder='../templates/jobs')
+
 
 def sanitize_filename(name):
     return re.sub(r'\W+', '', name.lower().replace(' ', '_'))
 
+
+def ensure_upload_folder():
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    return upload_folder
+
+
 @jobs_bp.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
+    ensure_upload_folder()
+
     if request.method == 'POST':
         if request.form.get('update_status'):
             job_id = request.form.get('job_id')
@@ -33,9 +44,9 @@ def dashboard():
 
             if company and link and resume:
                 filename = f"{sanitize_filename(company)}_resume{os.path.splitext(resume.filename)[1]}"
-                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                upload_folder = ensure_upload_folder()
+                filepath = os.path.join(upload_folder, filename)
 
-                # Save file
                 resume.save(filepath)
 
                 job = Job(
@@ -74,6 +85,7 @@ def dashboard():
                            page=page,
                            total_pages=total_pages)
 
+
 @jobs_bp.route('/resume/<filename>')
 @login_required
 def download_resume(filename):
@@ -81,6 +93,7 @@ def download_resume(filename):
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
     abort(404)
+
 
 @jobs_bp.route('/preview_resume/<filename>')
 @login_required
@@ -90,9 +103,12 @@ def preview_resume(filename):
         return send_file(path)
     abort(404)
 
+
 @jobs_bp.route('/export/<int:job_id>')
 @login_required
 def export_single(job_id):
+    ensure_upload_folder()
+
     job = Job.query.filter_by(id=job_id, user_id=current_user.id).first_or_404()
     data = [{
         'Company': job.company,
@@ -108,9 +124,12 @@ def export_single(job_id):
     df.to_excel(path, index=False)
     return send_file(path, as_attachment=True)
 
+
 @jobs_bp.route('/download_excel')
 @login_required
 def download_excel():
+    ensure_upload_folder()
+
     jobs = Job.query.filter_by(user_id=current_user.id).order_by(Job.timestamp.desc()).all()
     data = [{
         'Company': j.company,
