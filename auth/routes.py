@@ -53,10 +53,15 @@ def change_password():
         elif new != confirm:
             flash("New passwords do not match", "warning")
         else:
-            current_user.password = generate_password_hash(new)
-            db.session.commit()
-            flash("Password updated successfully", "success")
-            return redirect(url_for('jobs.dashboard'))
+            try:
+                current_user.password = generate_password_hash(new)
+                db.session.commit()
+                flash("Password updated successfully", "success")
+                return redirect(url_for('jobs.dashboard'))
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Error updating password: {e}")
+                flash("An unexpected error occurred. Please try again.", "danger")
 
     return render_template('auth/change_password.html')
 
