@@ -30,7 +30,14 @@ def home():
         return redirect(url_for('jobs.dashboard'))
     return render_template('landing.html')
 
-if __name__ == '__main__':
-    with app.app_context():
+
+# ✅ Auto-create tables on startup (important for Render Free tier without shell)
+with app.app_context():
+    try:
         db.create_all()
+        print("✅ Tables created successfully.")
+    except Exception as e:
+        print("❌ Error creating tables:", e)
+
+if __name__ == '__main__':
     app.run(debug=True, port=5005)
