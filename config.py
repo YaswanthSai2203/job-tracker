@@ -1,6 +1,9 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'super-secret-key'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///job_tracker.db'
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
+    uri = os.environ.get("DATABASE_URL")
+    if uri and uri.startswith("postgres://"):
+        uri = uri.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
