@@ -17,6 +17,7 @@
       font-family: 'Segoe UI', sans-serif;
       background: url("{{ url_for('static', filename='images/bg.jpg') }}") no-repeat center center fixed;
       background-size: cover;
+      scroll-behavior: smooth;
       position: relative;
     }
 
@@ -27,30 +28,31 @@
       left: 0;
       height: 100%;
       width: 100%;
-      background: rgba(0, 0, 0, 0.4); /* dark overlay */
+      background: rgba(0, 0, 0, 0.35);
       z-index: -1;
     }
 
     .navbar {
-      backdrop-filter: blur(12px);
-      background-color: rgba(255, 255, 255, 0.8);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(14px);
+      background-color: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .container {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.93);
       border-radius: 1rem;
       padding: 2rem;
       margin-top: 2rem;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 3rem;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
     }
 
     .fab {
       position: fixed;
       bottom: 25px;
       right: 25px;
-      z-index: 1000;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      z-index: 1050;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
       transition: all 0.3s ease;
     }
 
@@ -60,8 +62,8 @@
 
     .toast-container {
       position: fixed;
-      top: 1rem;
-      right: 1rem;
+      top: 1.25rem;
+      right: 1.25rem;
       z-index: 1100;
     }
 
@@ -70,14 +72,14 @@
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
 
-    .btn-outline-secondary:hover {
-      background-color: #f0f0f0;
-    }
-
     .navbar-brand {
       font-size: 1.5rem;
       font-weight: 700;
       color: #2c3e50;
+    }
+
+    .btn-outline-secondary:hover {
+      background-color: #f0f0f0;
     }
 
     .btn-primary {
@@ -87,6 +89,15 @@
 
     .btn-primary:hover {
       background-color: #4c51bf;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -121,11 +132,9 @@
 <div class="toast-container">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
-      <div class="toast align-items-center text-bg-{{ category }} border-0" role="alert" data-bs-delay="3000" data-bs-autohide="true">
+      <div class="toast align-items-center text-bg-{{ category }} border-0 fade-in" role="alert" data-bs-delay="3000" data-bs-autohide="true">
         <div class="d-flex">
-          <div class="toast-body">
-            {{ message }}
-          </div>
+          <div class="toast-body">{{ message }}</div>
           <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
       </div>
