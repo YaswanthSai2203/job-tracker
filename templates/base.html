@@ -1,11 +1,10 @@
+<!-- base.html -->
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Job Tracker{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -17,8 +16,6 @@
       font-family: 'Segoe UI', sans-serif;
       background: url("{{ url_for('static', filename='images/bg.jpg') }}") no-repeat center center fixed;
       background-size: cover;
-      scroll-behavior: smooth;
-      position: relative;
     }
 
     body::before {
@@ -56,9 +53,7 @@
       transition: all 0.3s ease;
     }
 
-    .fab:hover {
-      transform: scale(1.1);
-    }
+    .fab:hover { transform: scale(1.1); }
 
     .toast-container {
       position: fixed;
@@ -67,28 +62,10 @@
       z-index: 1100;
     }
 
-    .dropdown-menu {
-      border-radius: 0.5rem;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-    }
-
     .navbar-brand {
       font-size: 1.5rem;
       font-weight: 700;
       color: #2c3e50;
-    }
-
-    .btn-outline-secondary:hover {
-      background-color: #f0f0f0;
-    }
-
-    .btn-primary {
-      background-color: #5a67d8;
-      border: none;
-    }
-
-    .btn-primary:hover {
-      background-color: #4c51bf;
     }
 
     .fade-in {
@@ -111,8 +88,12 @@
     </a>
     <div class="ms-auto d-flex align-items-center gap-3">
       {% if current_user.is_authenticated %}
+        <a href="{{ url_for('jobs.jobs_board') }}" class="btn btn-outline-secondary btn-sm">Jobs</a>
+        {% if current_user.email == config.ADMIN_EMAIL %}
+          <a href="{{ url_for('jobs.admin_jobs') }}" class="btn btn-outline-dark btn-sm">Admin</a>
+        {% endif %}
         <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
             👤
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
@@ -142,17 +123,15 @@
   {% endwith %}
 </div>
 
-<!-- Main Content -->
+<!-- Main -->
 <div class="container">
   {% block content %}{% endblock %}
 </div>
 
-<!-- FAB -->
 <a href="#addJobForm" class="btn btn-primary rounded-circle fab shadow-lg" title="Add New Job">
   <i class="bi bi-plus-lg"></i>
 </a>
 
-<!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   document.querySelectorAll('.toast').forEach(toast => new bootstrap.Toast(toast).show());

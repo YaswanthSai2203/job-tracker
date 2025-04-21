@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Edit Job{% endblock %}
+{% block content %}
+
+<h3 class="mb-4 text-primary fw-bold"><i class="bi bi-pencil-square"></i> Edit Job</h3>
+
+<form method="POST" class="card p-4 shadow-sm">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Title</label>
+      <input type="text" name="title" class="form-control" value="{{ job.title }}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Company</label>
+      <input type="text" name="company" class="form-control" value="{{ job.company }}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Location</label>
+      <input type="text" name="location" class="form-control" value="{{ job.location }}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Salary</label>
+      <input type="text" name="salary" class="form-control" value="{{ job.salary }}">
+    </div>
+    <div class="col-md-12">
+      <label class="form-label">Link</label>
+      <input type="url" name="link" class="form-control" value="{{ job.link }}" required>
+    </div>
+    <div class="col-md-12">
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-control" rows="4" required>{{ job.description }}</textarea>
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-success">💾 Update</button>
+      <a href="{{ url_for('jobs.admin_jobs') }}" class="btn btn-secondary ms-2">Back</a>
+    </div>
+  </div>
+</form>
+
+{% endblock %}

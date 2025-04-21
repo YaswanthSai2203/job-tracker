@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Job Listings{% endblock %}
+{% block content %}
+
+<style>
+  .job-card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+    margin-bottom: 2rem;
+    transition: transform 0.2s ease;
+  }
+
+  .job-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .job-card h5 {
+    font-weight: 700;
+    color: #1a202c;
+  }
+
+  .job-card ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+  }
+
+  .job-card li {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    color: #555;
+  }
+
+  .job-card a {
+    font-weight: 600;
+    text-decoration: none;
+    color: #3b82f6;
+  }
+
+  .job-card a:hover {
+    text-decoration: underline;
+  }
+
+  .section-header {
+    text-align: center;
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: #2d3748;
+  }
+</style>
+
+<h3 class="mb-4 text-primary fw-bold"><i class="bi bi-megaphone"></i> Job Board</h3>
+
+{% if jobs %}
+  {% for job in jobs %}
+    <div class="card p-3 mb-3 shadow-sm border-start border-info border-4">
+      <h5 class="text-info fw-semibold">{{ job.title }}</h5>
+      <p class="mb-1"><strong>Company:</strong> {{ job.company }}</p>
+      <p class="mb-1"><strong>Location:</strong> {{ job.location }}</p>
+      <p class="mb-1"><strong>Salary:</strong> {{ job.salary }}</p>
+      <p class="mb-2"><strong>Link:</strong> <a href="{{ job.link }}" target="_blank" class="text-decoration-none">Apply Here</a></p>
+      <p class="mb-2">{{ job.description }}</p>
+      <p class="text-muted small">
+        <i class="bi bi-calendar2-event"></i>
+        <strong>Posted on:</strong> {{ job.timestamp.strftime('%Y-%m-%d %I:%M %p') }}
+      </p>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="text-muted">No job postings available at the moment.</p>
+{% endif %}
+
+{% endblock %}
