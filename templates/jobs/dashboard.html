@@ -8,7 +8,7 @@
         <div class="card text-bg-primary shadow-sm rounded-3">
             <div class="card-body">
                 <h6 class="card-title">Total Applications</h6>
-                <h3 class="fw-bold">{{ jobs | length }}</h3>
+                <h3 class="fw-bold">{{ total_jobs }}</h3>
             </div>
         </div>
     </div>
@@ -101,7 +101,7 @@
       <input type="hidden" name="update_status" value="1">
       <select name="status" class="form-select form-select-sm mb-2 shadow-sm">
         {% for s in ['Under Consideration', 'Review', 'Rejected', 'Interviewing', 'Offered'] %}
-        <option {{ 'selected' if job.status == s else '' }}>{{ s }}</option>
+        <option value="{{ s }}" {% if job.status == s %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
       </select>
       <button type="submit" class="btn btn-sm btn-outline-primary">✅ Update</button>
@@ -161,4 +161,10 @@
   }
 </style>
 
+{% endblock %}
+
+{% block fab %}
+<a href="#addJobForm" class="btn btn-primary rounded-circle fab shadow-lg" title="Add New Job">
+  <i class="bi bi-plus-lg"></i>
+</a>
 {% endblock %}
