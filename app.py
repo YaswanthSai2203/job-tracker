@@ -1,5 +1,6 @@
 from flask import Flask, redirect, url_for, render_template
 from flask_login import LoginManager, current_user
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from models.models import db, User
 from auth.routes import auth_bp
@@ -8,6 +9,11 @@ import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+if app.config.get("VERCEL"):
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+    )
 
 # Ensure upload folder exists
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
