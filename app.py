@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, render_template, url_for
 from flask_login import LoginManager, current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
