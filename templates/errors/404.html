@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Page not found{% endblock %}
+{% block content %}
+<div class="text-center py-5 px-3">
+  <p class="text-app-muted text-uppercase small fw-semibold mb-2">404</p>
+  <h1 class="mb-3">This page does not exist</h1>
+  <p class="text-app-muted mb-4 mx-auto" style="max-width: 26rem;">The link may be wrong or the page was removed. Try the home page or your dashboard.</p>
+  <a href="{{ url_for('home') }}" class="btn btn-primary me-2">Home</a>
+  {% if current_user.is_authenticated %}
+  <a href="{{ url_for('jobs.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
+  {% else %}
+  <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">Log in</a>
+  {% endif %}
+</div>
+{% endblock %}

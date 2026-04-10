@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Privacy · Job Tracker{% endblock %}
+{% block meta %}
+<meta name="description" content="Privacy policy for Job Tracker — what data we store and how it is used.">
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Privacy policy</h1>
+  <p class="text-app-muted">Last updated: April 2026. This is a general template; adjust for your deployment.</p>
+</div>
+<div class="panel">
+  <h2 class="h6 fw-semibold">Information we collect</h2>
+  <p>When you create an account, we store your email address and a hashed password. When you use the application tracker, we store the details you enter (such as company names, links, notes, deadlines) and filenames for uploaded resumes.</p>
+  <h2 class="h6 fw-semibold mt-4">How we use it</h2>
+  <p>We use this information to provide the service: authentication, saving your applications, and (for administrators) publishing public job listings.</p>
+  <h2 class="h6 fw-semibold mt-4">Cookies and sessions</h2>
+  <p>We use session cookies to keep you logged in. In production we configure cookies to be sent only over HTTPS where applicable.</p>
+  <h2 class="h6 fw-semibold mt-4">Data retention</h2>
+  <p>Data is kept until you delete it or close your account, subject to your host’s backup and retention policies.</p>
+  <h2 class="h6 fw-semibold mt-4">Contact</h2>
+  <p>For privacy questions, contact the operator of this deployment.</p>
+</div>
+{% endblock %}

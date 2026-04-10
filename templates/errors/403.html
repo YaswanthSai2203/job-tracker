@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Access denied{% endblock %}
+{% block content %}
+<div class="text-center py-5 px-3">
+  <p class="text-app-muted text-uppercase small fw-semibold mb-2">403</p>
+  <h1 class="mb-3">You cannot access this</h1>
+  <p class="text-app-muted mb-4 mx-auto" style="max-width: 26rem;">You do not have permission to view this resource.</p>
+  <a href="{{ url_for('home') }}" class="btn btn-primary">Go back</a>
+</div>
+{% endblock %}

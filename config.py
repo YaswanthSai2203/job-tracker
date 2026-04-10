@@ -49,3 +49,27 @@ class Config:
         SESSION_COOKIE_SECURE = True
         SESSION_COOKIE_HTTPONLY = True
         SESSION_COOKIE_SAMESITE = "Lax"
+
+    # Flask-WTF CSRF (enabled unless explicitly disabled)
+    WTF_CSRF_ENABLED = os.environ.get("WTF_CSRF_ENABLED", "true").lower() not in (
+        "0",
+        "false",
+        "no",
+    )
+    WTF_CSRF_TIME_LIMIT = int(os.environ.get("WTF_CSRF_TIME_LIMIT", "43200"))
+
+    # Optional SMTP (stdlib smtplib only — set MAIL_SERVER to enable)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "").strip() or None
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", "587"))
+    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "").strip() or None
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "").strip() or None
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "").strip() or None
+
+    # Rate limits (Flask-Limiter; in-memory storage unless you set RATELIMIT_STORAGE_URI)
+    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+    RATELIMIT_ENABLED = os.environ.get("RATELIMIT_ENABLED", "true").lower() not in (
+        "0",
+        "false",
+        "no",
+    )

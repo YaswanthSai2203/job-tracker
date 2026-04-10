@@ -4,7 +4,7 @@
 <div class="auth-layout">
   <div class="auth-card">
     <h1>Reset password</h1>
-    <p class="sub">We will show a reset link in the server console (dev mode)</p>
+    <p class="sub">If SMTP is configured, you will get an email. Otherwise the operator can find the link in server logs.</p>
     <form method="POST" novalidate>
       <div class="mb-3">
         <label for="email" class="form-label">Email</label>
@@ -15,12 +15,6 @@
         <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">Back to log in</a>
       </div>
     </form>
-    {% if reset_link %}
-    <div class="alert alert-success mt-4 mb-0 small">
-      <strong>Reset link:</strong>
-      <a href="{{ reset_link }}" class="d-block mt-1 text-break" target="_blank" rel="noopener">{{ reset_link }}</a>
-    </div>
-    {% endif %}
   </div>
 </div>
 {% endblock %}

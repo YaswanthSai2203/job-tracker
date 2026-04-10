@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>{% block title %}Job Tracker{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% block meta %}{% endblock %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
@@ -37,7 +38,12 @@
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="bi bi-key me-2 text-app-muted"></i>Change password</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Log out</a></li>
+              <li>
+                <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Log out</button>
+                </form>
+              </li>
             </ul>
           </div>
         {% else %}
@@ -68,6 +74,18 @@
 <main class="app-shell">
   {% block content %}{% endblock %}
 </main>
+
+<footer class="app-shell pt-0 pb-4 text-center small text-app-muted">
+  <a href="{{ url_for('privacy') }}" class="text-decoration-none text-app-muted me-3">Privacy</a>
+  <a href="{{ url_for('terms') }}" class="text-decoration-none text-app-muted">Terms</a>
+</footer>
+
+<div id="cookie-note" class="app-shell pt-0 pb-3 d-none" role="status">
+  <div class="panel panel-muted py-2 px-3 mb-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span class="small mb-0">This site uses essential session cookies to keep you signed in.</span>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="cookie-dismiss">OK</button>
+  </div>
+</div>
 
 {% block fab %}{% endblock %}
 
@@ -100,6 +118,50 @@
       });
     }
   })();
+
+  document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(function (form) {
+    if (form.querySelector('input[name="csrf_token"]')) return;
+    var i = document.createElement('input');
+    i.type = 'hidden';
+    i.name = 'csrf_token';
+    i.value = '{{ csrf_token() }}';
+    form.appendChild(i);
+  });
+
+  (function () {
+    var note = document.getElementById('cookie-note');
+    var btn = document.getElementById('cookie-dismiss');
+    if (!note || !btn) return;
+    try {
+      if (!localStorage.getItem('cookie_notice_ok')) note.classList.remove('d-none');
+    } catch (e) {}
+    btn.addEventListener('click', function () {
+      try { localStorage.setItem('cookie_notice_ok', '1'); } catch (e) {}
+      note.classList.add('d-none');
+    });
+  })();
+
+  document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      var btn = form.querySelector('button[type="submit"]');
+      if (btn && !btn.dataset.loading) {
+        btn.dataset.loading = '1';
+        btn.disabled = true;
+        var t = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Please wait…';
+        btn.setAttribute('aria-busy', 'true');
+        var ms = (form.getAttribute('enctype') || '').toLowerCase().indexOf('multipart') >= 0 ? 120000 : 25000;
+        setTimeout(function () {
+          if (btn.disabled) {
+            btn.disabled = false;
+            btn.innerHTML = t;
+            btn.removeAttribute('aria-busy');
+            delete btn.dataset.loading;
+          }
+        }, ms);
+      }
+    });
+  });
 </script>
 </body>
 </html>

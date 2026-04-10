@@ -1,12 +1,25 @@
 import os
 import re
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, abort, current_app, flash
-from flask_login import login_required, current_user
-from models.models import db, Job, PublicJob
 from datetime import datetime
 from math import ceil
 
-jobs_bp = Blueprint('jobs', __name__, template_folder='../templates/jobs')
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
+from flask_login import login_required, current_user
+
+from extensions import limiter
+from models.models import Job, PublicJob, db
+
+jobs_bp = Blueprint("jobs", __name__, template_folder="../templates/jobs")
 
 def sanitize_filename(name):
     return re.sub(r'\W+', '', name.lower().replace(' ', '_'))
@@ -17,8 +30,9 @@ def ensure_upload_folder():
         os.makedirs(upload_folder)
     return upload_folder
 
-@jobs_bp.route('/dashboard', methods=['GET', 'POST'])
+@jobs_bp.route("/dashboard", methods=["GET", "POST"])
 @login_required
+@limiter.limit("200 per minute")
 def dashboard():
     ensure_upload_folder()
 
@@ -86,24 +100,27 @@ def dashboard():
                            page=page,
                            total_pages=total_pages)
 
-@jobs_bp.route('/resume/<filename>')
+@jobs_bp.route("/resume/<filename>")
 @login_required
+@limiter.limit("300 per minute")
 def download_resume(filename):
     path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
     abort(404)
 
-@jobs_bp.route('/preview_resume/<filename>')
+@jobs_bp.route("/preview_resume/<filename>")
 @login_required
+@limiter.limit("300 per minute")
 def preview_resume(filename):
     path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     if os.path.exists(path):
         return send_file(path)
     abort(404)
 
-@jobs_bp.route('/export/<int:job_id>')
+@jobs_bp.route("/export/<int:job_id>")
 @login_required
+@limiter.limit("60 per minute")
 def export_single(job_id):
     ensure_upload_folder()
 
@@ -124,8 +141,9 @@ def export_single(job_id):
     df.to_excel(path, index=False)
     return send_file(path, as_attachment=True)
 
-@jobs_bp.route('/download_excel')
+@jobs_bp.route("/download_excel")
 @login_required
+@limiter.limit("30 per minute")
 def download_excel():
     ensure_upload_folder()
 
@@ -147,13 +165,15 @@ def download_excel():
     df.to_excel(path, index=False)
     return send_file(path, as_attachment=True)
 
-@jobs_bp.route('/jobs-board')
+@jobs_bp.route("/jobs-board")
+@limiter.limit("120 per minute")
 def jobs_board():
     jobs = PublicJob.query.order_by(PublicJob.timestamp.desc()).all()
     return render_template('jobs/jobs_board.html', jobs=jobs)
 
-@jobs_bp.route('/admin/jobs', methods=['GET', 'POST'])
+@jobs_bp.route("/admin/jobs", methods=["GET", "POST"])
 @login_required
+@limiter.limit("120 per minute")
 def admin_jobs():
     admin_email = current_app.config.get('ADMIN_EMAIL', 'admin@example.com')
     if current_user.email != admin_email:
@@ -176,8 +196,9 @@ def admin_jobs():
     jobs = PublicJob.query.order_by(PublicJob.timestamp.desc()).all()
     return render_template('jobs/admin_jobs.html', jobs=jobs)
 
-@jobs_bp.route('/admin/jobs/<int:job_id>/edit', methods=['GET', 'POST'])
+@jobs_bp.route("/admin/jobs/<int:job_id>/edit", methods=["GET", "POST"])
 @login_required
+@limiter.limit("120 per minute")
 def edit_public_job(job_id):
     admin_email = current_app.config.get('ADMIN_EMAIL', 'admin@example.com')
     if current_user.email != admin_email:
@@ -198,8 +219,9 @@ def edit_public_job(job_id):
 
     return render_template('jobs/edit_job.html', job=job)
 
-@jobs_bp.route('/admin/jobs/<int:job_id>/delete', methods=['POST'])
+@jobs_bp.route("/admin/jobs/<int:job_id>/delete", methods=["POST"])
 @login_required
+@limiter.limit("60 per minute")
 def delete_public_job(job_id):
     admin_email = current_app.config.get('ADMIN_EMAIL', 'admin@example.com')
     if current_user.email != admin_email:
