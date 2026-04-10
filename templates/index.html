@@ -1,10 +1,13 @@
-<!-- templates/index.html -->
 {% extends 'base.html' %}
 {% block title %}Welcome{% endblock %}
 {% block content %}
-<div class="text-center mt-5">
-    <h2>Welcome to Job Tracker</h2>
-    <p><a href="{{ url_for('auth.login') }}" class="btn btn-primary">Login</a>
-       or <a href="{{ url_for('auth.signup') }}" class="btn btn-success">Sign Up</a> to begin.</p>
+<div class="hero-landing">
+  <div class="hero-visual" aria-hidden="true"><i class="bi bi-briefcase"></i></div>
+  <h1>Job Tracker</h1>
+  <p class="lead">Log in or sign up to manage your applications.</p>
+  <div class="hero-actions">
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4">Log in</a>
+    <a href="{{ url_for('auth.signup') }}" class="btn btn-outline-primary btn-lg px-4">Sign up</a>
+  </div>
 </div>
 {% endblock %}

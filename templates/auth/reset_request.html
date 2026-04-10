@@ -1,20 +1,26 @@
 {% extends 'base.html' %}
-{% block title %}Reset Password{% endblock %}
+{% block title %}Reset password{% endblock %}
 {% block content %}
-<div class="container col-md-6">
-    <h3 class="mb-4 text-warning">Reset Password</h3>
-
-    <form method="POST">
-        <label>Email</label>
-        <input type="email" name="email" class="form-control mb-3" required>
-        <button type="submit" class="btn btn-warning w-100">Send Reset Link</button>
+<div class="auth-layout">
+  <div class="auth-card">
+    <h1>Reset password</h1>
+    <p class="sub">We will show a reset link in the server console (dev mode)</p>
+    <form method="POST" novalidate>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" name="email" id="email" class="form-control" required autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary">Send reset link</button>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">Back to log in</a>
+      </div>
     </form>
-
     {% if reset_link %}
-    <div class="alert alert-success mt-4">
-        🔗 <strong>Reset Link:</strong>
-        <a href="{{ reset_link }}" target="_blank">Click here to reset your password</a>
+    <div class="alert alert-success mt-4 mb-0 small">
+      <strong>Reset link:</strong>
+      <a href="{{ reset_link }}" class="d-block mt-1 text-break" target="_blank" rel="noopener">{{ reset_link }}</a>
     </div>
     {% endif %}
+  </div>
 </div>
 {% endblock %}

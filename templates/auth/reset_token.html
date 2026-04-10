@@ -1,12 +1,22 @@
 {% extends 'base.html' %}
-{% block title %}Set New Password{% endblock %}
+{% block title %}New password{% endblock %}
 {% block content %}
-<div class="container col-md-4">
-    <h3 class="mb-4 text-success">Set New Password</h3>
-    <form method="POST">
-        <label>New Password</label>
-        <input type="password" name="password" class="form-control mb-3" required>
-        <button type="submit" class="btn btn-success w-100">Reset Password</button>
+<div class="auth-layout">
+  <div class="auth-card">
+    <h1>Set new password</h1>
+    <p class="sub">Choose a password you have not used here before</p>
+    <form method="POST" novalidate>
+      <div class="mb-3">
+        <label for="password" class="form-label">New password</label>
+        <input type="password" name="password" id="password" class="form-control" required autocomplete="new-password" minlength="6">
+      </div>
+      <div class="d-grid">
+        <button type="submit" class="btn btn-primary">Save password</button>
+      </div>
     </form>
+    <p class="text-center small text-app-muted mt-4 mb-0">
+      <a href="{{ url_for('auth.login') }}">Back to log in</a>
+    </p>
+  </div>
 </div>
 {% endblock %}

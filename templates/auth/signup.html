@@ -1,48 +1,26 @@
 {% extends 'base.html' %}
-{% block title %}Sign Up{% endblock %}
+{% block title %}Sign up{% endblock %}
 {% block content %}
-
-<style>
-  .auth-container {
-    max-width: 420px;
-    margin: 6rem auto;
-    padding: 2rem 2.5rem;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 1rem;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
-    backdrop-filter: blur(12px);
-    animation: fadeIn 0.6s ease-in;
-  }
-
-  .auth-container h3 {
-    font-weight: 700;
-    color: var(--bs-success);
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-</style>
-
-<div class="auth-container bg-white shadow-sm">
-  <h3 class="text-center mb-4">📝 Sign Up</h3>
-  <form method="POST">
-    <div class="mb-3">
-      <label for="email" class="form-label">Email Address</label>
-      <input type="email" name="email" id="email" class="form-control" required>
-    </div>
-    <div class="mb-3">
-      <label for="password" class="form-label">Create Password</label>
-      <input type="password" name="password" id="password" class="form-control" required>
-    </div>
-    <div class="d-grid mb-2">
-      <button type="submit" class="btn btn-success">Create Account</button>
-    </div>
-    <p class="text-center mt-3 small">
-      Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
+<div class="auth-layout">
+  <div class="auth-card">
+    <h1>Create account</h1>
+    <p class="sub">Start tracking applications in minutes</p>
+    <form method="POST" novalidate>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" name="email" id="email" class="form-control" required autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" name="password" id="password" class="form-control" required autocomplete="new-password" minlength="6">
+      </div>
+      <div class="d-grid">
+        <button type="submit" class="btn btn-primary">Create account</button>
+      </div>
+    </form>
+    <p class="text-center small text-app-muted mt-4 mb-0">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a>
     </p>
-  </form>
+  </div>
 </div>
-
 {% endblock %}

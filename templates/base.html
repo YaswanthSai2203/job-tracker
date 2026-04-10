@@ -1,151 +1,105 @@
-<!-- base.html -->
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Job Tracker{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: url("{% if config.VERCEL %}/images/bg.jpg{% else %}{{ url_for('static', filename='images/bg.jpg') }}{% endif %}") no-repeat center center fixed;
-      background-size: cover;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 100%;
-      background: rgba(0, 0, 0, 0.35);
-      z-index: -1;
-    }
-
-    .navbar {
-      backdrop-filter: blur(14px);
-      background-color: rgba(255, 255, 255, 0.85);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    }
-
-    .container {
-      background: rgba(255, 255, 255, 0.93);
-      border-radius: 1rem;
-      padding: 2rem;
-      margin-top: 2rem;
-      margin-bottom: 3rem;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-    }
-
-    .fab {
-      position: fixed;
-      bottom: 25px;
-      right: 25px;
-      z-index: 1050;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-      transition: all 0.3s ease;
-    }
-
-    .fab:hover { transform: scale(1.1); }
-
-    .toast-container {
-      position: fixed;
-      top: 1.25rem;
-      right: 1.25rem;
-      z-index: 1100;
-    }
-
-    .navbar-brand {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #2c3e50;
-    }
-
-    .fade-in {
-      animation: fadeIn 0.4s ease-in;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% if config.VERCEL %}/css/app.css{% else %}{{ url_for('static', filename='css/app.css') }}{% endif %}">
+  {% block head_extra %}{% endblock %}
 </head>
 <body>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg px-4 py-2">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="{{ url_for('jobs.dashboard') }}">
-      <i class="bi bi-briefcase-fill me-2"></i>Job Tracker
+<nav class="navbar navbar-expand-lg app-nav px-3 px-md-4 py-2">
+  <div class="container-fluid" style="max-width: 1120px;">
+    <a class="navbar-brand" href="{% if current_user.is_authenticated %}{{ url_for('jobs.dashboard') }}{% else %}{{ url_for('home') }}{% endif %}">
+      <span class="brand-mark"><i class="bi bi-briefcase-fill"></i></span>
+      <span>Job Tracker</span>
     </a>
-    <div class="ms-auto d-flex align-items-center gap-3">
-      {% if current_user.is_authenticated %}
-        <a href="{{ url_for('jobs.jobs_board') }}" class="btn btn-outline-secondary btn-sm">Jobs</a>
-        {% if current_user.email == config.ADMIN_EMAIL %}
-          <a href="{{ url_for('jobs.admin_jobs') }}" class="btn btn-outline-dark btn-sm">Admin</a>
+    <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMain">
+      <div class="navbar-nav ms-auto align-items-lg-center gap-2 mt-3 mt-lg-0">
+        {% if current_user.is_authenticated %}
+          <a class="btn btn-sm btn-ghost" href="{{ url_for('jobs.jobs_board') }}"><i class="bi bi-grid-3x3-gap me-1"></i>Job board</a>
+          {% if current_user.email == config.ADMIN_EMAIL %}
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('jobs.admin_jobs') }}"><i class="bi bi-shield-lock me-1"></i>Admin</a>
+          {% endif %}
+          <div class="dropdown">
+            <button class="btn btn-sm btn-ghost dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle me-1"></i>Account
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="bi bi-key me-2 text-app-muted"></i>Change password</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Log out</a></li>
+            </ul>
+          </div>
+        {% else %}
+          <a class="btn btn-sm btn-ghost" href="{{ url_for('auth.login') }}">Log in</a>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('auth.signup') }}">Sign up</a>
         {% endif %}
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            👤
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">Change Password</a></li>
-            <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">Logout</a></li>
-          </ul>
-        </div>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-sm">Login</a>
-      {% endif %}
-      <button id="toggle-theme" class="btn btn-sm btn-outline-secondary"><i class="bi bi-moon-fill"></i></button>
+        <button type="button" id="toggle-theme" class="btn btn-sm btn-ghost" title="Toggle theme" aria-label="Toggle dark mode">
+          <i class="bi bi-moon-stars-fill" id="theme-icon"></i>
+        </button>
+      </div>
     </div>
   </div>
 </nav>
 
-<!-- Toasts -->
-<div class="toast-container">
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
-      <div class="toast align-items-center text-bg-{{ category }} border-0 fade-in" role="alert" data-bs-delay="3000" data-bs-autohide="true">
+      <div class="toast toast-app align-items-center text-bg-{{ category }} border-0 mb-2" role="alert" data-bs-delay="4500" data-bs-autohide="true">
         <div class="d-flex">
           <div class="toast-body">{{ message }}</div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
       </div>
     {% endfor %}
   {% endwith %}
 </div>
 
-<!-- Main -->
-<div class="container">
+<main class="app-shell">
   {% block content %}{% endblock %}
-</div>
+</main>
 
 {% block fab %}{% endblock %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  document.querySelectorAll('.toast').forEach(toast => new bootstrap.Toast(toast).show());
-
-  const themeBtn = document.getElementById('toggle-theme');
-  const html = document.documentElement;
-  const savedTheme = localStorage.getItem('theme');
-
-  if (savedTheme) html.setAttribute('data-bs-theme', savedTheme);
-
-  themeBtn.addEventListener('click', () => {
-    const isDark = html.getAttribute('data-bs-theme') === 'dark';
-    html.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
-    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  document.querySelectorAll('.toast').forEach(function (el) {
+    new bootstrap.Toast(el).show();
   });
-</script>
 
+  (function () {
+    const html = document.documentElement;
+    const btn = document.getElementById('toggle-theme');
+    const icon = document.getElementById('theme-icon');
+    const saved = localStorage.getItem('theme');
+    if (saved) html.setAttribute('data-bs-theme', saved);
+    function syncIcon() {
+      const dark = html.getAttribute('data-bs-theme') === 'dark';
+      if (icon) {
+        icon.className = dark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+      }
+    }
+    syncIcon();
+    if (btn) {
+      btn.addEventListener('click', function () {
+        const dark = html.getAttribute('data-bs-theme') === 'dark';
+        const next = dark ? 'light' : 'dark';
+        html.setAttribute('data-bs-theme', next);
+        localStorage.setItem('theme', next);
+        syncIcon();
+      });
+    }
+  })();
+</script>
 </body>
 </html>
