@@ -1,6 +1,5 @@
 import os
 import re
-import pandas as pd
 from flask import Blueprint, render_template, request, redirect, url_for, send_file, abort, current_app, flash
 from flask_login import login_required, current_user
 from models.models import db, Job, PublicJob
@@ -118,6 +117,8 @@ def export_single(job_id):
         'Notes': job.notes,
         'Deadline': job.deadline.strftime('%Y-%m-%d') if job.deadline else ''
     }]
+    import pandas as pd
+
     df = pd.DataFrame(data)
     path = os.path.join(current_app.config['UPLOAD_FOLDER'], f'job_{job.id}.xlsx')
     df.to_excel(path, index=False)
@@ -138,6 +139,8 @@ def download_excel():
         'Notes': j.notes,
         'Deadline': j.deadline.strftime('%Y-%m-%d') if j.deadline else ''
     } for j in jobs]
+
+    import pandas as pd
 
     df = pd.DataFrame(data)
     path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'job_applications.xlsx')
