@@ -1,5 +1,4 @@
 from flask import Flask, redirect, url_for, render_template
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from config import Config
 from models.models import db, User
@@ -16,6 +15,8 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 # Initialize extensions
 db.init_app(app)
+with app.app_context():
+    db.create_all()
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 
@@ -26,7 +27,7 @@ app.register_blueprint(jobs_bp)
 # User loader
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 @app.route('/')
 def home():

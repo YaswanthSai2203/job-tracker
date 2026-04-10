@@ -6,5 +6,10 @@ uploads/
 *.pyo
 *.pyd
 *.sqlite3
+default.db
 .env
 .DS_Store
+Desktop
+Desktop.pub
+eval "$(ssh-agent -s)"
+eval "$(ssh-agent -s)".pub

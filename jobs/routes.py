@@ -27,7 +27,12 @@ def dashboard():
         if request.form.get('update_status'):
             job_id = request.form.get('job_id')
             new_status = request.form.get('status')
-            job = Job.query.get(job_id)
+            job = None
+            if job_id:
+                try:
+                    job = db.session.get(Job, int(job_id))
+                except (TypeError, ValueError):
+                    pass
             if job and job.user_id == current_user.id:
                 job.status = new_status
                 db.session.commit()
@@ -76,6 +81,7 @@ def dashboard():
 
     return render_template('jobs/dashboard.html',
                            jobs=jobs,
+                           total_jobs=total_jobs,
                            search=search,
                            status_filter=status_filter,
                            page=page,
@@ -155,7 +161,7 @@ def admin_jobs():
             title=request.form['title'],
             company=request.form['company'],
             location=request.form['location'],
-            salary=request.form['salary'],
+            salary=request.form.get('salary') or None,
             link=request.form['link'],
             description=request.form['description']
         )
@@ -180,7 +186,7 @@ def edit_public_job(job_id):
         job.title = request.form['title']
         job.company = request.form['company']
         job.location = request.form['location']
-        job.salary = request.form['salary']
+        job.salary = request.form.get('salary') or None
         job.link = request.form['link']
         job.description = request.form['description']
         db.session.commit()
