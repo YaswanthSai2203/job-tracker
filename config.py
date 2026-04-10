@@ -25,7 +25,7 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    ADMIN_EMAIL = "yaswanthsreerama@gmail.com"
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "yaswanthsreerama@gmail.com")
 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max
 
