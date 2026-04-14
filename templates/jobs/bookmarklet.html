@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Bookmarklet{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Save job from any tab</h1>
+  <p class="text-app-muted">Drag the button below to your bookmarks bar. On a job posting page, click it: you will log in if needed, then land on a form with the URL (and title) filled in—add your PDF resume to save.</p>
+</div>
+
+<div class="panel">
+  <p class="mb-3"><strong>Drag this link</strong> to your bookmarks bar:</p>
+  <p class="mb-0">
+    <a class="btn btn-lg btn-primary" draggable="true" href="{{ bookmarklet_href }}" rel="nofollow">Save to Job Tracker</a>
+  </p>
+  <p class="small text-app-muted mt-3 mb-0">If your browser blocks the link, copy the bookmarklet code from the server docs or ask your admin. The link uses your site URL: <code>{{ capture_base }}</code></p>
+</div>
+
+<p class="mt-4"><a href="{{ url_for('jobs.dashboard') }}">← Dashboard</a></p>
+{% endblock %}

@@ -6,6 +6,9 @@
     <h1>Welcome back</h1>
     <p class="sub">Log in to your dashboard</p>
     <form method="POST" novalidate>
+      {% if next_url %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+      {% endif %}
       <div class="mb-3">
         <label for="email" class="form-label">Email</label>
         <input type="email" name="email" id="email" class="form-control" required autocomplete="email" placeholder="you@example.com">

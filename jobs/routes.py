@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 import os
 import re
 from datetime import date, datetime, timedelta
@@ -22,11 +23,18 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from extensions import limiter
-from models.models import Job, PublicJob, db
+from models.models import Interview, Job, JobStatusHistory, PublicJob, db
 
 jobs_bp = Blueprint("jobs", __name__, template_folder="../templates/jobs")
 
 _ALLOWED_RESUME_EXT = {".pdf"}
+_STATUSES = [
+    "Under Consideration",
+    "Review",
+    "Rejected",
+    "Interviewing",
+    "Offered",
+]
 
 
 def sanitize_filename(name):
@@ -62,9 +70,40 @@ def _parse_date(s):
         return None
 
 
+def _parse_dt(s):
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        try:
+            return datetime.strptime(s, "%Y-%m-%d %H:%M")
+        except ValueError:
+            return None
+
+
+def _log_status_change(job, old_status, new_status):
+    if old_status == new_status:
+        return
+    now = datetime.utcnow()
+    job.status_changed_at = now
+    db.session.add(
+        JobStatusHistory(
+            job_id=job.id,
+            old_status=old_status,
+            new_status=new_status,
+            changed_at=now,
+        )
+    )
+
+
 def _dashboard_sort_clause(sort):
     if sort == "deadline":
-        return (Job.deadline.isnot(None).desc(), Job.deadline.asc(), Job.timestamp.desc())
+        return (
+            Job.deadline.isnot(None).desc(),
+            Job.deadline.asc(),
+            Job.timestamp.desc(),
+        )
     if sort == "company":
         return (Job.company.asc(), Job.timestamp.desc())
     if sort == "updated":
@@ -85,6 +124,32 @@ def _per_page(raw):
     return n
 
 
+def _apply_dashboard_filters(query, search, status_filter, tag_filter, view, today):
+    if search:
+        like = f"%{search}%"
+        query = query.filter(
+            or_(
+                Job.company.ilike(like),
+                Job.link.ilike(like),
+                Job.notes.ilike(like),
+            )
+        )
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if tag_filter:
+        query = query.filter(Job.tags.ilike(f"%{tag_filter}%"))
+    if view == "archived":
+        query = query.filter(Job.archived.is_(True))
+    elif view == "all":
+        pass
+    else:
+        query = query.filter(Job.archived.is_(False))
+        query = query.filter(
+            or_(Job.snoozed_until.is_(None), Job.snoozed_until <= today)
+        )
+    return query
+
+
 @jobs_bp.route("/dashboard", methods=["GET", "POST"])
 @login_required
 @limiter.limit("200 per minute")
@@ -102,17 +167,84 @@ def dashboard():
                 jid = None
             job = db.session.get(Job, jid) if jid else None
             if job and job.user_id == current_user.id:
-                path = os.path.join(current_app.config["UPLOAD_FOLDER"], job.resume_filename)
+                path = os.path.join(
+                    current_app.config["UPLOAD_FOLDER"], job.resume_filename
+                )
                 db.session.delete(job)
                 db.session.commit()
                 if os.path.isfile(path):
                     try:
                         os.remove(path)
                     except OSError:
-                        current_app.logger.warning("Could not remove resume file %s", path)
+                        current_app.logger.warning(
+                            "Could not remove resume file %s", path
+                        )
                 flash("Application removed.", "success")
             else:
                 flash("Could not delete that application.", "danger")
+            return redirect(_dashboard_redirect_url())
+
+        if request.form.get("bulk_status"):
+            new_status = request.form.get("bulk_new_status")
+            ids = request.form.getlist("job_ids")
+            if new_status not in _STATUSES:
+                flash("Invalid status.", "danger")
+                return redirect(_dashboard_redirect_url())
+            n = 0
+            for sid in ids:
+                try:
+                    jid = int(sid)
+                except (TypeError, ValueError):
+                    continue
+                job = db.session.get(Job, jid)
+                if job and job.user_id == current_user.id:
+                    old = job.status
+                    job.status = new_status
+                    job.updated_at = datetime.utcnow()
+                    _log_status_change(job, old, new_status)
+                    n += 1
+            db.session.commit()
+            flash(f"Updated status for {n} application(s).", "success")
+            return redirect(_dashboard_redirect_url())
+
+        if request.form.get("snooze_job"):
+            jid = request.form.get("job_id")
+            days = int(request.form.get("snooze_days") or 7)
+            job = db.session.get(Job, int(jid)) if jid else None
+            if job and job.user_id == current_user.id:
+                job.snoozed_until = today + timedelta(days=days)
+                job.updated_at = datetime.utcnow()
+                db.session.commit()
+                flash(f"Snoozed for {days} days.", "info")
+            return redirect(_dashboard_redirect_url())
+
+        if request.form.get("unsnooze_job"):
+            jid = request.form.get("job_id")
+            job = db.session.get(Job, int(jid)) if jid else None
+            if job and job.user_id == current_user.id:
+                job.snoozed_until = None
+                job.updated_at = datetime.utcnow()
+                db.session.commit()
+            return redirect(_dashboard_redirect_url())
+
+        if request.form.get("archive_job"):
+            jid = request.form.get("job_id")
+            job = db.session.get(Job, int(jid)) if jid else None
+            if job and job.user_id == current_user.id:
+                job.archived = True
+                job.updated_at = datetime.utcnow()
+                db.session.commit()
+                flash("Archived.", "success")
+            return redirect(_dashboard_redirect_url())
+
+        if request.form.get("unarchive_job"):
+            jid = request.form.get("job_id")
+            job = db.session.get(Job, int(jid)) if jid else None
+            if job and job.user_id == current_user.id:
+                job.archived = False
+                job.updated_at = datetime.utcnow()
+                db.session.commit()
+                flash("Restored from archive.", "success")
             return redirect(_dashboard_redirect_url())
 
         if request.form.get("duplicate_job"):
@@ -154,8 +286,14 @@ def dashboard():
                     status="Under Consideration",
                     timestamp=now,
                     updated_at=now,
+                    status_changed_at=now,
+                    tags=src.tags or "",
+                    archived=False,
+                    snoozed_until=None,
                 )
                 db.session.add(dup)
+                db.session.flush()
+                _log_status_change(dup, None, "Under Consideration")
                 db.session.commit()
                 flash("Duplicated application with a copy of the resume.", "success")
             return redirect(_dashboard_redirect_url())
@@ -169,15 +307,18 @@ def dashboard():
                     job = db.session.get(Job, int(job_id))
                 except (TypeError, ValueError):
                     pass
-            if job and job.user_id == current_user.id:
+            if job and job.user_id == current_user.id and new_status in _STATUSES:
+                old = job.status
                 job.status = new_status
                 job.updated_at = datetime.utcnow()
+                _log_status_change(job, old, new_status)
                 db.session.commit()
         else:
             company = request.form.get("company")
             link = request.form.get("link")
             resume = request.files.get("resume")
             notes = request.form.get("notes")
+            tags = (request.form.get("tags") or "").strip()[:200]
             deadline = _parse_date(request.form.get("deadline"))
 
             if company and link and resume:
@@ -206,14 +347,22 @@ def dashboard():
                     deadline=deadline,
                     timestamp=now,
                     updated_at=now,
+                    status_changed_at=now,
+                    tags=tags,
+                    archived=False,
+                    snoozed_until=None,
                 )
                 db.session.add(job)
+                db.session.flush()
+                _log_status_change(job, None, job.status)
                 db.session.commit()
 
         return redirect(_dashboard_redirect_url())
 
     search = (request.args.get("search") or "").strip().lower()
     status_filter = (request.args.get("status") or "").strip()
+    tag_filter = (request.args.get("tag") or "").strip().lower()
+    view = (request.args.get("view") or "active").strip()
     sort = (request.args.get("sort") or "updated").strip()
     per_page = _per_page(request.args.get("per_page"))
     try:
@@ -222,11 +371,9 @@ def dashboard():
         page = 1
 
     query = Job.query.filter_by(user_id=current_user.id)
-    if search:
-        query = query.filter(Job.company.ilike(f"%{search}%"))
-    if status_filter:
-        query = query.filter_by(status=status_filter)
-
+    query = _apply_dashboard_filters(
+        query, search, status_filter, tag_filter, view, today
+    )
     query = query.order_by(*_dashboard_sort_clause(sort))
 
     due_week_q = Job.query.filter(
@@ -234,11 +381,14 @@ def dashboard():
         Job.deadline.isnot(None),
         Job.deadline >= today,
         Job.deadline <= week_end,
+        Job.archived.is_(False),
     ).order_by(Job.deadline.asc())
     due_this_week = due_week_q.all()
 
     reminder_jobs = []
-    for j in Job.query.filter_by(user_id=current_user.id).all():
+    for j in Job.query.filter_by(user_id=current_user.id).filter(
+        Job.archived.is_(False)
+    ).all():
         if not j.deadline:
             continue
         days = (j.deadline - today).days
@@ -251,6 +401,19 @@ def dashboard():
     else:
         show_reminder_banner = False
 
+    next_interviews = (
+        db.session.query(Interview, Job)
+        .join(Job, Interview.job_id == Job.id)
+        .filter(
+            Job.user_id == current_user.id,
+            Job.archived.is_(False),
+            Interview.interview_at >= datetime.utcnow(),
+        )
+        .order_by(Interview.interview_at.asc())
+        .limit(5)
+        .all()
+    )
+
     total_jobs = query.count()
     total_pages = max(1, ceil(total_jobs / per_page)) if total_jobs else 1
     page = min(page, total_pages)
@@ -262,6 +425,8 @@ def dashboard():
         total_jobs=total_jobs,
         search=search,
         status_filter=status_filter,
+        tag_filter=tag_filter,
+        view=view,
         sort=sort,
         per_page=per_page,
         page=page,
@@ -271,6 +436,8 @@ def dashboard():
         show_reminder_banner=show_reminder_banner,
         today=today,
         week_end=week_end,
+        next_interviews=next_interviews,
+        statuses=_STATUSES,
     )
 
 
@@ -288,10 +455,194 @@ def _dashboard_redirect_url():
         "jobs.dashboard",
         search=pick("return_search", "search", default=""),
         status=pick("return_status", "status", default=""),
+        tag=pick("return_tag", "tag", default=""),
+        view=pick("return_view", "view", default="active"),
         sort=pick("return_sort", "sort", default="updated"),
         per_page=pick("return_per_page", "per_page", default=5),
         page=pick("return_page", "page", default=1),
     )
+
+
+@jobs_bp.route("/applications/capture", methods=["GET", "POST"])
+@login_required
+@limiter.limit("30 per minute")
+def capture_application():
+    """Save from current browser tab: bookmarklet opens this URL with ?link=&company=."""
+    if request.method == "GET":
+        link = (request.args.get("link") or "").strip()
+        company = (request.args.get("company") or "").strip()
+        title = (request.args.get("title") or "").strip()
+        return render_template(
+            "jobs/capture.html",
+            link=link,
+            company=company or title,
+            title=title,
+        )
+    company = (request.form.get("company") or "").strip()
+    link = (request.form.get("link") or "").strip()
+    resume = request.files.get("resume")
+    notes = (request.form.get("notes") or "").strip()
+    tags = (request.form.get("tags") or "").strip()[:200]
+    deadline = _parse_date(request.form.get("deadline"))
+    if not company or not link or not resume:
+        flash("Company, job link, and resume PDF are required.", "warning")
+        return render_template(
+            "jobs/capture.html", link=link, company=company, title=""
+        )
+    ext = os.path.splitext(resume.filename or "")[1].lower()
+    if ext not in _ALLOWED_RESUME_EXT:
+        flash("Please upload a PDF resume.", "warning")
+        return render_template(
+            "jobs/capture.html", link=link, company=company, title=""
+        )
+    filename = f"{sanitize_filename(company)}_resume{ext}"
+    upload_folder = ensure_upload_folder()
+    filepath = os.path.join(upload_folder, filename)
+    n = 1
+    while os.path.exists(filepath) or Job.query.filter_by(
+        user_id=current_user.id, resume_filename=filename
+    ).first():
+        n += 1
+        filename = f"{sanitize_filename(company)}_resume_{n}{ext}"
+        filepath = os.path.join(upload_folder, filename)
+    resume.save(filepath)
+    now = datetime.utcnow()
+    job = Job(
+        company=company,
+        link=link,
+        resume_filename=filename,
+        user_id=current_user.id,
+        notes=notes,
+        deadline=deadline,
+        timestamp=now,
+        updated_at=now,
+        status_changed_at=now,
+        tags=tags,
+        archived=False,
+        snoozed_until=None,
+    )
+    db.session.add(job)
+    db.session.flush()
+    _log_status_change(job, None, job.status)
+    db.session.commit()
+    flash("Application saved from capture.", "success")
+    return redirect(url_for("jobs.application_detail", job_id=job.id))
+
+
+@jobs_bp.route("/applications/<int:job_id>", methods=["GET", "POST"])
+@login_required
+@limiter.limit("120 per minute")
+def application_detail(job_id):
+    job = Job.query.filter_by(id=job_id, user_id=current_user.id).first_or_404()
+    if request.method == "POST":
+        if request.form.get("update_status_detail"):
+            new_status = request.form.get("status")
+            if new_status in _STATUSES:
+                old = job.status
+                job.status = new_status
+                job.updated_at = datetime.utcnow()
+                _log_status_change(job, old, new_status)
+                db.session.commit()
+                flash("Status updated.", "success")
+            return redirect(url_for("jobs.application_detail", job_id=job.id))
+        if request.form.get("add_interview"):
+            when = _parse_dt(request.form.get("interview_at"))
+            kind = (request.form.get("kind") or "phone").strip()[:40]
+            inv_notes = (request.form.get("interview_notes") or "").strip()
+            if when:
+                db.session.add(
+                    Interview(
+                        job_id=job.id,
+                        interview_at=when,
+                        kind=kind or "phone",
+                        notes=inv_notes or None,
+                    )
+                )
+                job.updated_at = datetime.utcnow()
+                db.session.commit()
+                flash("Interview added.", "success")
+            else:
+                flash("Enter a valid date and time for the interview.", "warning")
+        elif request.form.get("delete_interview"):
+            iid = request.form.get("interview_id")
+            try:
+                iid = int(iid)
+            except (TypeError, ValueError):
+                iid = None
+            inv = db.session.get(Interview, iid) if iid else None
+            if inv and inv.job_id == job.id:
+                db.session.delete(inv)
+                job.updated_at = datetime.utcnow()
+                db.session.commit()
+                flash("Interview removed.", "info")
+        return redirect(url_for("jobs.application_detail", job_id=job.id))
+
+    history = (
+        JobStatusHistory.query.filter_by(job_id=job.id)
+        .order_by(JobStatusHistory.changed_at.desc())
+        .all()
+    )
+    interviews = (
+        Interview.query.filter_by(job_id=job.id)
+        .order_by(Interview.interview_at.desc())
+        .all()
+    )
+    return render_template(
+        "jobs/application_detail.html",
+        job=job,
+        history=history,
+        interviews=interviews,
+        statuses=_STATUSES,
+    )
+
+
+@jobs_bp.route("/bookmarklet")
+@login_required
+@limiter.limit("60 per minute")
+def bookmarklet():
+    base = request.url_root.rstrip("/")
+    b = json.dumps(base)
+    js = (
+        "javascript:(function(){var B="
+        + b
+        + ";var u=encodeURIComponent(location.href);var t=document.title||'';"
+        "var c=encodeURIComponent(t.split(/[-|·]/)[0].trim()||'');"
+        "window.open(B+'/auth/login?next='+encodeURIComponent(B+"
+        "'/applications/capture?link='+u+'&company='+c+'&title='+encodeURIComponent(t)),'_blank');})();"
+    )
+    return render_template(
+        "jobs/bookmarklet.html",
+        bookmarklet_href=js,
+        capture_base=f"{base}/applications/capture",
+    )
+
+
+@jobs_bp.route("/analytics")
+@login_required
+@limiter.limit("60 per minute")
+def analytics():
+    uid = current_user.id
+    jobs = Job.query.filter_by(user_id=uid).all()
+    funnel = {
+        "applied": sum(
+            1 for j in jobs if j.status in ("Under Consideration", "Review")
+        ),
+        "interviewing": sum(1 for j in jobs if j.status == "Interviewing"),
+        "offered": sum(1 for j in jobs if j.status == "Offered"),
+        "rejected": sum(1 for j in jobs if j.status == "Rejected"),
+    }
+    now = datetime.utcnow()
+    stage_days = []
+    for j in jobs:
+        if j.status_changed_at:
+            days = (now - j.status_changed_at).total_seconds() / 86400.0
+            stage_days.append((j.status, days))
+    avg_by_status = {}
+    for st in _STATUSES:
+        vals = [d for s, d in stage_days if s == st]
+        if vals:
+            avg_by_status[st] = sum(vals) / len(vals)
+    return render_template("jobs/analytics.html", funnel=funnel, avg_by_status=avg_by_status)
 
 
 @jobs_bp.route("/applications/<int:job_id>/edit", methods=["GET", "POST"])
@@ -303,6 +654,7 @@ def edit_application(job_id):
         company = request.form.get("company", "").strip()
         link = request.form.get("link", "").strip()
         notes = request.form.get("notes")
+        tags = (request.form.get("tags") or "").strip()[:200]
         deadline = _parse_date(request.form.get("deadline"))
         resume = request.files.get("resume")
 
@@ -313,6 +665,7 @@ def edit_application(job_id):
         job.company = company
         job.link = link
         job.notes = notes
+        job.tags = tags
         job.deadline = deadline
         job.updated_at = datetime.utcnow()
 
@@ -348,7 +701,7 @@ def edit_application(job_id):
 
         db.session.commit()
         flash("Application updated.", "success")
-        return redirect(url_for("jobs.dashboard"))
+        return redirect(url_for("jobs.application_detail", job_id=job.id))
 
     return render_template("jobs/edit_application.html", job=job)
 
@@ -381,7 +734,6 @@ def preview_resume(filename):
 @login_required
 @limiter.limit("300 per minute")
 def download_resume_legacy(filename):
-    """Backward compatibility for old /resume/<file> download links."""
     return redirect(url_for("jobs.download_resume", filename=filename))
 
 
@@ -398,6 +750,7 @@ def _job_row_dict(job):
         "Link": job.link,
         "Resume": job.resume_filename,
         "Status": job.status,
+        "Tags": getattr(job, "tags", "") or "",
         "Timestamp": job.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "Updated": getattr(job, "updated_at", job.timestamp).strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -451,21 +804,18 @@ def download_excel():
 @limiter.limit("30 per minute")
 def download_csv():
     jobs = Job.query.filter_by(user_id=current_user.id).order_by(Job.timestamp.desc()).all()
-    if not jobs:
-        rows = []
-        fieldnames = [
-            "Company",
-            "Link",
-            "Resume",
-            "Status",
-            "Timestamp",
-            "Updated",
-            "Notes",
-            "Deadline",
-        ]
-    else:
-        fieldnames = list(_job_row_dict(jobs[0]).keys())
-        rows = [_job_row_dict(j) for j in jobs]
+    fieldnames = [
+        "Company",
+        "Link",
+        "Resume",
+        "Status",
+        "Tags",
+        "Timestamp",
+        "Updated",
+        "Notes",
+        "Deadline",
+    ]
+    rows = [_job_row_dict(j) for j in jobs] if jobs else []
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=fieldnames)
     w.writeheader()

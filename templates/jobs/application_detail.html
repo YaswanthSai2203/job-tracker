@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}{{ job.company }} · Application{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ job.company }}</h1>
+    <p class="text-app-muted mb-0">
+      <a href="{{ job.link }}" target="_blank" rel="noopener">Open job posting</a>
+      · Added {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}
+      {% if job.updated_at and job.updated_at != job.timestamp %}
+      · Last updated {{ job.updated_at.strftime('%Y-%m-%d %H:%M') }}
+      {% endif %}
+    </p>
+    {% if job.tags %}
+    <p class="small mt-2 mb-0"><span class="text-app-muted">Tags:</span> {{ job.tags }}</p>
+    {% endif %}
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <span class="badge bg-primary fs-6">{{ job.status }}</span>
+    <a href="{{ url_for('jobs.preview_resume', filename=job.resume_filename) }}" target="_blank" class="btn btn-sm btn-outline-info">Preview resume</a>
+    <a href="{{ url_for('jobs.download_resume', filename=job.resume_filename) }}" class="btn btn-sm btn-outline-dark">Download</a>
+    <a href="{{ url_for('jobs.edit_application', job_id=job.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+    <a href="{{ url_for('jobs.dashboard') }}" class="btn btn-sm btn-outline-secondary">Dashboard</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="panel h-100">
+      <h2 class="h6 text-uppercase text-app-muted mb-3">Attachments</h2>
+      <ul class="list-unstyled mb-0">
+        <li><i class="bi bi-file-earmark-pdf me-2"></i>{{ job.resume_filename }}</li>
+      </ul>
+      {% if job.notes %}
+      <hr>
+      <h3 class="h6">Notes</h3>
+      <p class="mb-0 small" style="white-space: pre-wrap;">{{ job.notes }}</p>
+      {% endif %}
+      {% if job.deadline %}
+      <p class="small text-app-muted mt-3 mb-0"><i class="bi bi-calendar-event me-1"></i>Deadline {{ job.deadline.strftime('%Y-%m-%d') }}</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="panel h-100">
+      <h2 class="h6 text-uppercase text-app-muted mb-3">Update status</h2>
+      <form method="POST" class="d-flex flex-wrap gap-2 align-items-end">
+        <input type="hidden" name="update_status_detail" value="1">
+        <div class="flex-grow-1" style="min-width: 12rem;">
+          <select name="status" class="form-select">
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if job.status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="panel mt-4">
+  <h2 class="h6 text-uppercase text-app-muted mb-3">Interviews</h2>
+  <form method="POST" class="row g-2 mb-4 pb-3 border-bottom">
+    <input type="hidden" name="add_interview" value="1">
+    <div class="col-md-4">
+      <label class="form-label small">Date &amp; time</label>
+      <input type="datetime-local" name="interview_at" class="form-control" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small">Type</label>
+      <select name="kind" class="form-select">
+        <option value="phone">Phone</option>
+        <option value="video">Video</option>
+        <option value="onsite">Onsite</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label small">Notes</label>
+      <input type="text" name="interview_notes" class="form-control" placeholder="Optional">
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+      <button type="submit" class="btn btn-sm btn-primary w-100">Add</button>
+    </div>
+  </form>
+  {% if interviews %}
+  <ul class="list-group list-group-flush">
+    {% for iv in interviews %}
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+      <div>
+        <strong>{{ iv.interview_at.strftime('%Y-%m-%d %H:%M') }}</strong>
+        <span class="badge bg-secondary ms-1">{{ iv.kind }}</span>
+        {% if iv.notes %}<p class="small mb-0 mt-1">{{ iv.notes }}</p>{% endif %}
+      </div>
+      <form method="POST" class="ms-2" onsubmit="return confirm('Remove this interview?');">
+        <input type="hidden" name="delete_interview" value="1">
+        <input type="hidden" name="interview_id" value="{{ iv.id }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-app-muted small mb-0">No interviews scheduled yet.</p>
+  {% endif %}
+</div>
+
+<div class="panel mt-4">
+  <h2 class="h6 text-uppercase text-app-muted mb-3">Status history</h2>
+  {% if history %}
+  <ul class="list-unstyled small mb-0">
+    {% for h in history %}
+    <li class="mb-2 border-start border-3 ps-2 border-primary">
+      <strong>{{ h.changed_at.strftime('%Y-%m-%d %H:%M') }}</strong>
+      {% if h.old_status %}<span class="text-app-muted">{{ h.old_status }}</span> →{% endif %}
+      <span>{{ h.new_status }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-app-muted small mb-0">No history yet (changes are logged from now on).</p>
+  {% endif %}
+</div>
+{% endblock %}

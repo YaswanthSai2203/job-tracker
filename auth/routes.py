@@ -12,6 +12,7 @@ from flask import (
     request,
     url_for,
 )
+from urllib.parse import urljoin, urlparse
 from flask_login import current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -29,6 +30,21 @@ logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__, template_folder="../templates/auth")
 
 
+def _safe_redirect_target(target: str | None) -> str | None:
+    if not target or not isinstance(target, str):
+        return None
+    target = target.strip()
+    if not target:
+        return None
+    base = urlparse(request.host_url)
+    test = urlparse(urljoin(request.host_url, target))
+    if test.scheme not in ("http", "https"):
+        return None
+    if base.netloc != test.netloc:
+        return None
+    return target
+
+
 def _user_by_email(email: str):
     """Case-insensitive match (handles legacy rows stored with mixed case)."""
     if not email:
@@ -40,6 +56,16 @@ def _user_by_email(email: str):
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("20 per minute")
 def login():
+    if request.method == "GET":
+        nxt = _safe_redirect_target(request.args.get("next"))
+        if current_user.is_authenticated:
+            if not getattr(current_user, "email_verified", True):
+                return redirect(
+                    url_for("auth.verification_required", email=current_user.email)
+                )
+            if nxt:
+                return redirect(nxt)
+            return redirect(url_for("jobs.dashboard"))
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
@@ -57,9 +83,17 @@ def login():
                 user.email = email
                 db.session.commit()
             login_user(user)
+            nxt = _safe_redirect_target(
+                request.form.get("next") or request.args.get("next")
+            )
+            if nxt:
+                return redirect(nxt)
             return redirect(url_for("jobs.dashboard"))
         flash("Invalid email or password.", "danger")
-    return render_template("auth/login.html")
+    next_url = _safe_redirect_target(
+        request.args.get("next") or request.form.get("next")
+    )
+    return render_template("auth/login.html", next_url=next_url)
 
 
 @auth_bp.route("/signup", methods=["GET", "POST"])

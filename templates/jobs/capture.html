@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Save posting{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Save this posting</h1>
+  <p class="text-app-muted">Link and company were filled from the page you came from. Add your resume to finish.</p>
+</div>
+<div class="panel">
+  <form method="POST" enctype="multipart/form-data" class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Company</label>
+      <input type="text" name="company" class="form-control" value="{{ company }}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Job URL</label>
+      <input type="url" name="link" class="form-control" value="{{ link }}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Resume (PDF)</label>
+      <input type="file" name="resume" accept=".pdf,application/pdf" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Deadline</label>
+      <input type="date" name="deadline" class="form-control">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Tags</label>
+      <input type="text" name="tags" class="form-control" placeholder="Remote, Referral…">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="2" placeholder="Optional"></textarea>
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">Save application</button>
+      <a href="{{ url_for('jobs.dashboard') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

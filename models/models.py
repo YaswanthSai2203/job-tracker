@@ -12,7 +12,6 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(256), nullable=False)
-    # Default True so local/dev without SMTP still works; signup sets False when verification is sent
     email_verified = db.Column(db.Boolean, default=True, nullable=False)
 
     jobs = db.relationship("Job", backref="user", lazy=True)
@@ -33,11 +32,49 @@ class Job(db.Model):
         onupdate=datetime.utcnow,
         nullable=False,
     )
+    status_changed_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     notes = db.Column(db.Text)
     deadline = db.Column(db.Date)
+    tags = db.Column(db.String(200), default="")
+    archived = db.Column(db.Boolean, default=False, nullable=False)
+    snoozed_until = db.Column(db.Date, nullable=True)
+
+    interviews = db.relationship(
+        "Interview", backref="job", lazy=True, cascade="all, delete-orphan"
+    )
+    status_history = db.relationship(
+        "JobStatusHistory",
+        backref="job",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
+
+class JobStatusHistory(db.Model):
+    __tablename__ = "job_status_history"
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("job.id"), nullable=False)
+    old_status = db.Column(db.String(50), nullable=True)
+    new_status = db.Column(db.String(50), nullable=False)
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Interview(db.Model):
+    __tablename__ = "interview"
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("job.id"), nullable=False)
+    interview_at = db.Column(db.DateTime, nullable=False)
+    kind = db.Column(db.String(40), nullable=False, default="phone")
+    notes = db.Column(db.Text)
 
 
 class PublicJob(db.Model):

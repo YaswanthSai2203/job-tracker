@@ -18,6 +18,10 @@
       <input type="date" name="deadline" class="form-control" value="{{ job.deadline.strftime('%Y-%m-%d') if job.deadline else '' }}">
     </div>
     <div class="col-md-6">
+      <label class="form-label">Tags</label>
+      <input type="text" name="tags" class="form-control" value="{{ job.tags or '' }}" placeholder="Remote, Referral…">
+    </div>
+    <div class="col-md-6">
       <label class="form-label">Replace resume (PDF)</label>
       <input type="file" name="resume" accept=".pdf,application/pdf" class="form-control">
       <div class="form-text">Leave empty to keep the current file ({{ job.resume_filename }}).</div>
@@ -28,7 +32,8 @@
     </div>
     <div class="col-12">
       <button type="submit" class="btn btn-primary">Save changes</button>
-      <a href="{{ url_for('jobs.dashboard') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+      <a href="{{ url_for('jobs.application_detail', job_id=job.id) }}" class="btn btn-outline-secondary ms-2">View detail</a>
+      <a href="{{ url_for('jobs.dashboard') }}" class="btn btn-outline-secondary ms-2">Dashboard</a>
     </div>
   </form>
 </div>

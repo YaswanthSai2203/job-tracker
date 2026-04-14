@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Pipeline overview</h1>
+  <p class="text-app-muted">Counts across all your applications (including archived).</p>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="panel text-center mb-0">
+      <div class="text-app-muted small">Applied / early</div>
+      <div class="display-6 fw-bold text-primary">{{ funnel.applied }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="panel text-center mb-0">
+      <div class="text-app-muted small">Interviewing</div>
+      <div class="display-6 fw-bold text-warning">{{ funnel.interviewing }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="panel text-center mb-0">
+      <div class="text-app-muted small">Offered</div>
+      <div class="display-6 fw-bold text-success">{{ funnel.offered }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="panel text-center mb-0">
+      <div class="text-app-muted small">Rejected</div>
+      <div class="display-6 fw-bold text-danger">{{ funnel.rejected }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 class="h6 text-uppercase text-app-muted mb-3">Avg. days in current status</h2>
+  <p class="small text-app-muted">Since last status change (UTC). Useful once you have been updating statuses for a while.</p>
+  {% if avg_by_status %}
+  <table class="table table-sm mb-0">
+    <thead><tr><th>Status</th><th>Avg. days</th></tr></thead>
+    <tbody>
+      {% for st, days in avg_by_status.items() %}
+      <tr><td>{{ st }}</td><td>{{ '%.1f'|format(days) }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-app-muted small mb-0">Not enough data yet. Change statuses on your applications to build history.</p>
+  {% endif %}
+</div>
+
+<p class="mt-4 mb-0"><a href="{{ url_for('jobs.dashboard') }}">← Back to dashboard</a></p>
+{% endblock %}
