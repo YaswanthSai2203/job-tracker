@@ -32,6 +32,11 @@ class Config:
     else:
         SQLALCHEMY_DATABASE_URI = "sqlite:///default.db"
 
+    # True when user/job data can disappear (e.g. Vercel /tmp SQLite without Postgres)
+    DATABASE_IS_EPHEMERAL = bool(
+        VERCEL and not _raw_db and SQLALCHEMY_DATABASE_URI.startswith("sqlite")
+    )
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # SQLite + Flask threads (e.g. Vercel / dev server): avoid thread errors

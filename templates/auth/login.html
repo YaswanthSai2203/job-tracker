@@ -5,6 +5,12 @@
   <div class="auth-card">
     <h1>Welcome back</h1>
     <p class="sub">Log in to your dashboard</p>
+    {% if config.DATABASE_IS_EPHEMERAL %}
+    <div class="alert alert-warning small mb-3" role="alert">
+      This deployment is using <strong>temporary storage</strong> for accounts (no <code>DATABASE_URL</code>).
+      Users and passwords can disappear after a redeploy or idle period. Add a <strong>PostgreSQL</strong> database and set <code>DATABASE_URL</code> in your host settings to keep logins working.
+    </div>
+    {% endif %}
     <form method="POST" novalidate>
       {% if next_url %}
       <input type="hidden" name="next" value="{{ next_url }}">

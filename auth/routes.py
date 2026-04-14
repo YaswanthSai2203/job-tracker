@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__, template_folder="../templates/auth")
 
 
+def _signup_page():
+    return render_template("auth/signup.html")
+
+
 def _safe_redirect_target(target: str | None) -> str | None:
     if not target or not isinstance(target, str):
         return None
@@ -71,7 +75,10 @@ def login():
         password = request.form.get("password") or ""
         if not email:
             flash("Enter your email address.", "warning")
-            return render_template("auth/login.html")
+            return render_template(
+                "auth/login.html",
+                next_url=_safe_redirect_target(request.args.get("next")),
+            )
         user = _user_by_email(email)
         if user and user.password and check_password_hash(user.password, password):
             if not getattr(user, "email_verified", True):
@@ -89,7 +96,18 @@ def login():
             if nxt:
                 return redirect(nxt)
             return redirect(url_for("jobs.dashboard"))
-        flash("Invalid email or password.", "danger")
+
+        if user is None:
+            logger.info("Login failed: no account for email %s", email)
+        else:
+            logger.info("Login failed: wrong password for email %s", email)
+
+        flash(
+            "Invalid email or password. Check spelling and caps lock. "
+            "If this site runs without a permanent database (e.g. Vercel without DATABASE_URL), "
+            "your account may have been reset—sign up again after adding PostgreSQL.",
+            "danger",
+        )
     next_url = _safe_redirect_target(
         request.args.get("next") or request.form.get("next")
     )
@@ -104,13 +122,15 @@ def signup():
         password = request.form.get("password") or ""
         if not email or "@" not in email:
             flash("Enter a valid email address.", "warning")
-            return render_template("auth/signup.html")
+            return _signup_page()
         errs = password_errors(password)
         if errs:
             for e in errs:
                 flash(e, "warning")
-        elif _user_by_email(email):
+            return _signup_page()
+        if _user_by_email(email):
             flash("That email is already registered.", "warning")
+            return _signup_page()
         else:
             mail_ok = bool(current_app.config.get("MAIL_SERVER"))
             user = User(
@@ -124,7 +144,7 @@ def signup():
             except IntegrityError:
                 db.session.rollback()
                 flash("That email is already registered.", "warning")
-                return render_template("auth/signup.html")
+                return _signup_page()
 
             if mail_ok:
                 s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
@@ -160,7 +180,7 @@ def signup():
 
             login_user(user)
             return redirect(url_for("jobs.dashboard"))
-    return render_template("auth/signup.html")
+    return _signup_page()
 
 
 def _send_verification_email(user_email: str) -> bool:

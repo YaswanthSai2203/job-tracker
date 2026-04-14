@@ -5,6 +5,11 @@
   <div class="auth-card">
     <h1>Create account</h1>
     <p class="sub">Start tracking applications in minutes</p>
+    {% if config.DATABASE_IS_EPHEMERAL %}
+    <div class="alert alert-warning small mb-3" role="alert">
+      <strong>Important:</strong> Without <code>DATABASE_URL</code>, new accounts may be <strong>lost</strong> when the server restarts. Configure PostgreSQL for production.
+    </div>
+    {% endif %}
     <form method="POST" novalidate>
       <div class="mb-3">
         <label for="email" class="form-label">Email</label>
