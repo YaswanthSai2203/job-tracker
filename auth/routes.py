@@ -48,6 +48,11 @@ def login():
             return render_template("auth/login.html")
         user = _user_by_email(email)
         if user and user.password and check_password_hash(user.password, password):
+            if not getattr(user, "email_verified", True):
+                flash("Please verify your email before logging in.", "warning")
+                return redirect(
+                    url_for("auth.verification_required", email=user.email)
+                )
             if user.email != email:
                 user.email = email
                 db.session.commit()
@@ -73,7 +78,12 @@ def signup():
         elif _user_by_email(email):
             flash("That email is already registered.", "warning")
         else:
-            user = User(email=email, password=generate_password_hash(password))
+            mail_ok = bool(current_app.config.get("MAIL_SERVER"))
+            user = User(
+                email=email,
+                password=generate_password_hash(password),
+                email_verified=not mail_ok,
+            )
             db.session.add(user)
             try:
                 db.session.commit()
@@ -81,9 +91,114 @@ def signup():
                 db.session.rollback()
                 flash("That email is already registered.", "warning")
                 return render_template("auth/signup.html")
+
+            if mail_ok:
+                s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+                token = s.dumps(email, salt="email-verify-salt")
+                link = url_for("auth.verify_email", token=token, _external=True)
+                body = (
+                    "Welcome to Job Tracker.\n\n"
+                    "Please verify your email by opening this link (valid for 3 days):\n"
+                    f"{link}\n\n"
+                    "If you did not create an account, you can ignore this message."
+                )
+                if send_email(
+                    current_app,
+                    subject="Verify your email — Job Tracker",
+                    body_text=body,
+                    to_addr=email,
+                ):
+                    flash(
+                        "We sent a verification link to your email. Open it to activate your account.",
+                        "success",
+                    )
+                else:
+                    user.email_verified = True
+                    db.session.commit()
+                    flash(
+                        "We could not send the verification email (SMTP error). "
+                        "Your account is active — you can log in.",
+                        "warning",
+                    )
+                    login_user(user)
+                    return redirect(url_for("jobs.dashboard"))
+                return redirect(url_for("auth.verification_required", email=email))
+
             login_user(user)
             return redirect(url_for("jobs.dashboard"))
     return render_template("auth/signup.html")
+
+
+def _send_verification_email(user_email: str) -> bool:
+    s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    token = s.dumps(user_email.strip().lower(), salt="email-verify-salt")
+    link = url_for("auth.verify_email", token=token, _external=True)
+    body = (
+        "Welcome to Job Tracker.\n\n"
+        "Please verify your email by opening this link (valid for 3 days):\n"
+        f"{link}\n\n"
+        "If you did not create an account, you can ignore this message."
+    )
+    return send_email(
+        current_app,
+        subject="Verify your email — Job Tracker",
+        body_text=body,
+        to_addr=user_email,
+    )
+
+
+@auth_bp.route("/verify-email/<token>")
+def verify_email(token):
+    s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    try:
+        email = s.loads(token, salt="email-verify-salt", max_age=86400 * 3)
+    except (SignatureExpired, BadSignature):
+        flash("That verification link is invalid or has expired.", "danger")
+        return redirect(url_for("auth.login"))
+
+    user = _user_by_email(email)
+    if not user:
+        flash("No account found for that link.", "danger")
+        return redirect(url_for("auth.signup"))
+
+    user.email_verified = True
+    db.session.commit()
+    flash("Your email is verified. You can log in.", "success")
+    return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/verification-required")
+def verification_required():
+    email = (request.args.get("email") or "").strip()
+    return render_template("auth/pending_verification.html", email=email)
+
+
+@auth_bp.route("/resend-verification", methods=["POST"])
+@limiter.limit("5 per hour")
+def resend_verification():
+    email = (request.form.get("email") or "").strip().lower()
+    if not email:
+        flash("Enter your email address.", "warning")
+        return redirect(url_for("auth.login"))
+
+    if not current_app.config.get("MAIL_SERVER"):
+        flash("Email is not configured on this server.", "danger")
+        return redirect(url_for("auth.login"))
+
+    user = _user_by_email(email)
+    if not user:
+        flash("If an account exists, a verification email will be sent.", "info")
+        return redirect(url_for("auth.login"))
+
+    if user.email_verified:
+        flash("That account is already verified. You can log in.", "info")
+        return redirect(url_for("auth.login"))
+
+    if _send_verification_email(user.email):
+        flash("Verification email sent. Check your inbox.", "success")
+    else:
+        flash("Could not send email. Try again later.", "danger")
+    return redirect(url_for("auth.verification_required", email=user.email))
 
 
 @auth_bp.route("/logout", methods=["POST"])
@@ -215,7 +330,7 @@ def reset_request():
                     current_app,
                     subject="Password reset",
                     body_text=body,
-                    to_addr=user.email,
+                    to_addr=email,
                 )
                 if ok:
                     flash("Check your email for a reset link.", "success")

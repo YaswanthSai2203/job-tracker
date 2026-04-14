@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, jsonify, redirect, render_template, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -60,6 +60,34 @@ def create_app(config_class=Config):
             db.create_all()
         ensure_schema()
 
+    _auth_ok_unverified = frozenset(
+        {
+            "auth.login",
+            "auth.signup",
+            "auth.logout",
+            "auth.reset_request",
+            "auth.reset_token",
+            "auth.verify_email",
+            "auth.resend_verification",
+            "auth.verification_required",
+        }
+    )
+
+    @app.before_request
+    def _require_verified_email():
+        if not current_user.is_authenticated:
+            return None
+        if getattr(current_user, "email_verified", True):
+            return None
+        ep = request.endpoint
+        if ep in _auth_ok_unverified or ep == "static":
+            return None
+        if ep in ("health", "privacy", "terms"):
+            return None
+        return redirect(
+            url_for("auth.verification_required", email=current_user.email)
+        )
+
     @app.route("/health")
     def health():
         return jsonify({"status": "ok"}), 200
@@ -67,6 +95,8 @@ def create_app(config_class=Config):
     @app.route("/")
     def home():
         if current_user.is_authenticated:
+            if not getattr(current_user, "email_verified", True):
+                return redirect(url_for("auth.verification_required"))
             return redirect(url_for("jobs.dashboard"))
         return render_template("landing.html")
 

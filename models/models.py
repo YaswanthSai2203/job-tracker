@@ -12,6 +12,8 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(256), nullable=False)
+    # Default True so local/dev without SMTP still works; signup sets False when verification is sent
+    email_verified = db.Column(db.Boolean, default=True, nullable=False)
 
     jobs = db.relationship("Job", backref="user", lazy=True)
 

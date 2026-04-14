@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Verify your email{% endblock %}
+{% block content %}
+<div class="auth-layout">
+  <div class="auth-card">
+    <h1>Check your inbox</h1>
+    <p class="sub">We sent a verification link to <strong>{{ email }}</strong>. Click the link in the email to activate your account, then log in.</p>
+    <p class="small text-app-muted">Did not get it? Check spam, or resend below.</p>
+    <form method="POST" action="{{ url_for('auth.resend_verification') }}" class="d-grid gap-2">
+      <input type="hidden" name="email" value="{{ email }}">
+      <button type="submit" class="btn btn-outline-primary">Resend verification email</button>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Back to log in</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

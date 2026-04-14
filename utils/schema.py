@@ -47,3 +47,21 @@ def ensure_schema():
                 _exec(
                     "ALTER TABLE public_job ADD COLUMN featured BOOLEAN DEFAULT false NOT NULL"
                 )
+
+    insp = inspect(db.engine)
+    tables = insp.get_table_names()
+    if "user" in tables:
+        cols = {c["name"] for c in insp.get_columns("user")}
+        if "email_verified" not in cols:
+            if dialect == "sqlite":
+                _exec(
+                    "ALTER TABLE user ADD COLUMN email_verified BOOLEAN DEFAULT 1 NOT NULL"
+                )
+            else:
+                _exec(
+                    "ALTER TABLE \"user\" ADD COLUMN email_verified BOOLEAN DEFAULT true NOT NULL"
+                )
+            if dialect == "sqlite":
+                _exec("UPDATE user SET email_verified = 1 WHERE email_verified IS NULL")
+            else:
+                _exec('UPDATE "user" SET email_verified = true WHERE email_verified IS NULL')
