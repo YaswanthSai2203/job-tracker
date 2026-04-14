@@ -261,6 +261,7 @@ def export_data():
                 "link": j.link,
                 "resume_filename": j.resume_filename,
                 "status": j.status,
+                "tags": getattr(j, "tags", "") or "",
                 "notes": j.notes,
                 "deadline": j.deadline.isoformat() if j.deadline else None,
                 "created_at": j.timestamp.isoformat() + "Z",
