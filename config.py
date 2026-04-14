@@ -10,11 +10,11 @@ class Config:
     SQLALCHEMY_DATABASE_URI = uri or 'sqlite:///default.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    ADMIN_EMAIL = "yaswanthsreerama@gmail.com"
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "yaswanthsreerama@gmail.com")
 
-    if os.environ.get("RENDER"):
-        UPLOAD_FOLDER = '/tmp/uploads'
+    if os.environ.get("RENDER") or os.environ.get("VERCEL"):
+        UPLOAD_FOLDER = "/tmp/uploads"
     else:
-        UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+        UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max

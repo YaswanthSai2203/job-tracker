@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Account{% endblock %}
+{% block content %}
+
+<h3 class="mb-4 text-primary fw-bold"><i class="bi bi-person-badge"></i> Account</h3>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Export your data</h5>
+        <p class="card-text small text-muted">Download applications as JSON (no resume files included—only filenames).</p>
+        <a href="{{ url_for('auth.export_data') }}" class="btn btn-outline-primary">Download JSON</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-danger shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title text-danger">Delete account</h5>
+        <p class="card-text small">Permanently removes your user, all applications, and uploaded resume files from this server.</p>
+        <form method="POST" action="{{ url_for('auth.delete_account') }}" onsubmit="return confirm('This cannot be undone. Continue?');">
+          <label class="form-label small">Type your email to confirm</label>
+          <input type="email" name="confirm_email" class="form-control mb-2" required autocomplete="off" placeholder="{{ current_user.email }}">
+          <button type="submit" class="btn btn-danger">Delete my account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="mt-4 mb-0"><a href="{{ url_for('jobs.dashboard') }}">← Back to dashboard</a></p>
+
+{% endblock %}

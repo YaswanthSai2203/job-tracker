@@ -97,6 +97,7 @@
             👤
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('auth.account') }}">Account</a></li>
             <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">Change Password</a></li>
             <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">Logout</a></li>
           </ul>

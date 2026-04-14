@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Edit application{% endblock %}
+{% block content %}
+<h3 class="mb-4 text-primary fw-bold"><i class="bi bi-pencil-square"></i> Edit application</h3>
+
+<div class="card shadow-sm p-4">
+  <form method="POST" enctype="multipart/form-data" class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Company</label>
+      <input type="text" name="company" class="form-control" value="{{ job.company }}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Job link</label>
+      <input type="url" name="link" class="form-control" value="{{ job.link }}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Deadline</label>
+      <input type="date" name="deadline" class="form-control" value="{{ job.deadline.strftime('%Y-%m-%d') if job.deadline else '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Replace resume (PDF)</label>
+      <input type="file" name="resume" accept=".pdf,application/pdf" class="form-control">
+      <div class="form-text">Leave empty to keep the current file ({{ job.resume_filename }}).</div>
+    </div>
+    <div class="col-12">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="3">{{ job.notes or '' }}</textarea>
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a href="{{ url_for('jobs.dashboard') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

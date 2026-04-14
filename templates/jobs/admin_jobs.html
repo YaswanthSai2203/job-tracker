@@ -33,6 +33,12 @@
         <textarea name="description" class="form-control" rows="3" required></textarea>
       </div>
       <div class="col-12">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="featured" value="1" id="newFeatured">
+          <label class="form-check-label" for="newFeatured">Featured listing (shown first on the board)</label>
+        </div>
+      </div>
+      <div class="col-12">
         <button class="btn btn-success">➕ Post Job</button>
       </div>
     </form>
@@ -46,7 +52,7 @@
 <div class="card p-3 mb-3 shadow-sm border-start border-primary border-4">
   <div class="d-flex justify-content-between align-items-start">
     <div>
-      <h5 class="mb-1 text-primary">{{ loop.index }}. {{ job.title }}</h5>
+      <h5 class="mb-1 text-primary">{% if job.featured %}<span class="badge bg-warning text-dark me-1">Featured</span>{% endif %}{{ loop.index }}. {{ job.title }}</h5>
       <ul class="mb-2 ps-3">
         <li><strong>Company:</strong> {{ job.company }}</li>
         <li><strong>Location:</strong> {{ job.location }}</li>

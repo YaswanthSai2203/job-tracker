@@ -31,6 +31,12 @@
       <textarea name="description" class="form-control" rows="4" required>{{ job.description }}</textarea>
     </div>
     <div class="col-12">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="featured" value="1" id="editFeatured" {% if job.featured %}checked{% endif %}>
+        <label class="form-check-label" for="editFeatured">Featured listing</label>
+      </div>
+    </div>
+    <div class="col-12">
       <button type="submit" class="btn btn-success">💾 Update</button>
       <a href="{{ url_for('jobs.admin_jobs') }}" class="btn btn-secondary ms-2">Back</a>
     </div>
