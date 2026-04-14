@@ -71,11 +71,11 @@ body {
   background-attachment: fixed;
 }
 
-/* Nav */
+/* Nav — above toast layer so dropdown is not obscured (toast container uses pointer-events: none) */
 .app-nav {
   position: sticky;
   top: 0;
-  z-index: 1030;
+  z-index: 1090;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   background: var(--app-nav-bg) !important;
