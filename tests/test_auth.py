@@ -6,7 +6,7 @@ def test_signup_login_dashboard(client):
     )
     assert r.status_code == 200
 
-    client.post("/auth/logout", follow_redirects=True)
+    client.post("/auth/logout", follow_redirects=True, data={})
 
     r = client.post(
         "/auth/login",

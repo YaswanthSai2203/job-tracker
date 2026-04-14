@@ -1,19 +1,23 @@
 import os
 
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, jsonify, redirect, render_template, url_for
 from flask_login import LoginManager, current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from config import Config
-from models.models import db, User
 from auth.routes import auth_bp
+from config import Config
 from jobs.routes import jobs_bp
-from extensions import csrf, migrate, limiter
+from extensions import csrf, limiter, migrate
+from models.models import User, db
+from utils.logging_setup import init_app_logging
+from utils.schema import ensure_schema
 
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    init_app_logging(app)
 
     if app.config.get("VERCEL"):
         app.wsgi_app = ProxyFix(
@@ -54,6 +58,11 @@ def create_app(config_class=Config):
                 except Exception as stamp_exc:
                     app.logger.warning("Could not stamp alembic version: %s", stamp_exc)
             db.create_all()
+        ensure_schema()
+
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
 
     @app.route("/")
     def home():
@@ -90,10 +99,7 @@ def create_app(config_class=Config):
         if app.config.get("VERCEL") or app.config.get("RENDER") or os.environ.get(
             "FLASK_ENV"
         ) == "production":
-            response.headers.setdefault(
-                "X-Content-Type-Options",
-                "nosniff",
-            )
+            response.headers.setdefault("X-Content-Type-Options", "nosniff")
             response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
             response.headers.setdefault(
                 "Referrer-Policy",

@@ -6,6 +6,7 @@ import pytest
 from app import create_app
 from config import Config
 from models.models import db
+from utils.schema import ensure_schema
 
 
 class TestConfig(Config):
@@ -29,6 +30,7 @@ def app():
     app = create_app(TestConfig)
     with app.app_context():
         db.create_all()
+        ensure_schema()
         yield app
         db.session.remove()
         db.drop_all()

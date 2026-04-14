@@ -1,34 +1,54 @@
 {% extends 'base.html' %}
 {% block title %}Job board{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>Job board</h1>
-  <p>Public listings. Sign in to track your own applications on the dashboard.</p>
-</div>
+
+<h3 class="mb-4 text-primary fw-bold"><i class="bi bi-megaphone"></i> Job board</h3>
+
+<form method="get" class="row g-2 mb-4 align-items-end">
+  <div class="col-md-4">
+    <label class="form-label small text-muted">Search</label>
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Title, company, description…">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label small text-muted">Sort</label>
+    <select name="sort" class="form-select">
+      <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
+      <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest first</option>
+      <option value="company" {% if sort == 'company' %}selected{% endif %}>Company A–Z</option>
+    </select>
+  </div>
+  <div class="col-md-3">
+    <div class="form-check mt-4">
+      <input class="form-check-input" type="checkbox" name="featured" value="1" id="feat" {% if featured_only %}checked{% endif %}>
+      <label class="form-check-label" for="feat">Featured only</label>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <button type="submit" class="btn btn-outline-primary w-100">Apply</button>
+  </div>
+</form>
 
 {% if jobs %}
   {% for job in jobs %}
-  <article class="listing-card">
-    <h2>{{ job.title }}</h2>
-    <div class="listing-meta">
-      <span><i class="bi bi-building"></i>{{ job.company }}</span>
-      <span><i class="bi bi-geo-alt"></i>{{ job.location }}</span>
-      {% if job.salary %}
-      <span><i class="bi bi-currency-dollar"></i>{{ job.salary }}</span>
-      {% endif %}
+    <div class="card p-3 mb-3 shadow-sm border-start border-4 {% if job.featured %}border-warning{% else %}border-info{% endif %}">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div>
+          {% if job.featured %}<span class="badge bg-warning text-dark mb-2">Featured</span>{% endif %}
+          <h5 class="fw-semibold {% if job.featured %}text-dark{% else %}text-info{% endif %}">{{ job.title }}</h5>
+          <p class="mb-1 small"><strong>Company:</strong> {{ job.company }}</p>
+          <p class="mb-1 small"><strong>Location:</strong> {{ job.location }}</p>
+          {% if job.salary %}<p class="mb-1 small"><strong>Salary:</strong> {{ job.salary }}</p>{% endif %}
+          <p class="mb-2"><a href="{{ job.link }}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">Apply</a></p>
+          <p class="mb-0 small">{{ job.description }}</p>
+          <p class="text-muted small mt-2 mb-0">
+            <i class="bi bi-calendar2-event"></i> Posted {{ job.timestamp.strftime('%Y-%m-%d %I:%M %p') }}
+          </p>
+        </div>
+      </div>
     </div>
-    <p class="mb-3" style="line-height: 1.6; color: var(--app-text);">{{ job.description }}</p>
-    <div class="d-flex flex-wrap align-items-center gap-2 justify-content-between">
-      <a href="{{ job.link }}" class="btn btn-primary btn-sm" target="_blank" rel="noopener">Apply <i class="bi bi-arrow-right ms-1"></i></a>
-      <span class="small text-app-muted"><i class="bi bi-clock me-1"></i>Posted {{ job.timestamp.strftime('%b %d, %Y') }}</span>
-    </div>
-  </article>
   {% endfor %}
 {% else %}
-  <div class="empty-state">
-    <i class="bi bi-megaphone"></i>
-    <p class="mb-0 fw-medium">No listings yet</p>
-    <p class="small text-app-muted mb-0 mt-2">Check back soon for new roles.</p>
-  </div>
+  <p class="text-muted">No listings match your filters.</p>
 {% endif %}
+
 {% endblock %}

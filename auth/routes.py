@@ -1,7 +1,10 @@
+import json
 import logging
+import os
 
 from flask import (
     Blueprint,
+    Response,
     current_app,
     flash,
     redirect,
@@ -9,12 +12,12 @@ from flask import (
     request,
     url_for,
 )
-from flask_login import login_required, login_user, logout_user, current_user
+from flask_login import current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from extensions import limiter
-from models.models import User, db
+from models.models import Job, User, db
 from utils.mail import send_email
 from utils.passwords import password_errors
 
@@ -69,6 +72,73 @@ def signup():
 def logout():
     logout_user()
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/account")
+@login_required
+def account():
+    return render_template("auth/account.html")
+
+
+@auth_bp.route("/account/export")
+@login_required
+def export_data():
+    jobs = Job.query.filter_by(user_id=current_user.id).order_by(Job.timestamp.desc()).all()
+    payload = {
+        "export_version": 1,
+        "email": current_user.email,
+        "applications": [
+            {
+                "company": j.company,
+                "link": j.link,
+                "resume_filename": j.resume_filename,
+                "status": j.status,
+                "notes": j.notes,
+                "deadline": j.deadline.isoformat() if j.deadline else None,
+                "created_at": j.timestamp.isoformat() + "Z",
+                "updated_at": (
+                    getattr(j, "updated_at", j.timestamp).isoformat() + "Z"
+                ),
+            }
+            for j in jobs
+        ],
+    }
+    body = json.dumps(payload, indent=2, ensure_ascii=False)
+    return Response(
+        body,
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": "attachment; filename=job_tracker_data.json"
+        },
+    )
+
+
+@auth_bp.route("/account/delete", methods=["POST"])
+@login_required
+def delete_account():
+    confirm = (request.form.get("confirm_email") or "").strip().lower()
+    if confirm != current_user.email.strip().lower():
+        flash("Email confirmation did not match. Nothing was deleted.", "danger")
+        return redirect(url_for("auth.account"))
+
+    upload_folder = current_app.config["UPLOAD_FOLDER"]
+    uid = current_user.id
+    user = db.session.get(User, uid)
+    if not user:
+        return redirect(url_for("auth.login"))
+    for job in list(Job.query.filter_by(user_id=uid).all()):
+        path = os.path.join(upload_folder, job.resume_filename)
+        if os.path.isfile(path):
+            try:
+                os.remove(path)
+            except OSError:
+                current_app.logger.warning("Could not remove %s", path)
+        db.session.delete(job)
+    db.session.delete(user)
+    db.session.commit()
+    logout_user()
+    flash("Your account and application data have been deleted.", "info")
+    return redirect(url_for("home"))
 
 
 @auth_bp.route("/settings/change-password", methods=["GET", "POST"])

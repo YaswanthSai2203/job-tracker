@@ -9,136 +9,220 @@
   'Offered': 'success'
 } %}
 
-<div class="page-head">
-  <h1>Dashboard</h1>
-  <p>Add applications, filter by company or status, and export when you need a spreadsheet.</p>
-</div>
-
-<div class="row g-3 mb-4">
-  <div class="col-sm-6 col-lg-4">
-    <div class="stat-card h-100">
-      <div class="label">Total applications</div>
-      <div class="value">{{ total_jobs }}</div>
-    </div>
+{% if show_reminder_banner and reminder_jobs %}
+<div class="alert alert-warning d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-4" role="alert">
+  <div>
+    <strong>Upcoming deadlines</strong>
+    <ul class="mb-0 mt-2 small">
+      {% for j in reminder_jobs %}
+      <li><strong>{{ j.company }}</strong> — due {{ j.deadline.strftime('%Y-%m-%d') }} ({{ j.status }})</li>
+      {% endfor %}
+    </ul>
   </div>
 </div>
+{% endif %}
 
-<div class="panel" id="addJobForm">
-  <h2 class="h6 fw-semibold mb-3 text-app-muted text-uppercase small letter-spacing">New application</h2>
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card text-bg-primary shadow-sm rounded-3">
+      <div class="card-body">
+        <h6 class="card-title">Total applications</h6>
+        <h3 class="fw-bold">{{ total_jobs }}</h3>
+      </div>
+    </div>
+  </div>
+  {% if due_this_week %}
+  <div class="col-md-8">
+    <div class="card border-info shadow-sm rounded-3 h-100">
+      <div class="card-body">
+        <h6 class="card-title text-info"><i class="bi bi-calendar-week"></i> Due this calendar week ({{ today }} – {{ week_end }})</h6>
+        <ul class="mb-0 small">
+          {% for j in due_this_week %}
+          <li><strong>{{ j.company }}</strong> — {{ j.deadline.strftime('%a %b %d') }} · {{ j.status }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card shadow-sm p-4 mb-4 rounded-4 bg-body-tertiary" id="addJobForm">
+  <h6 class="text-muted mb-3">New application</h6>
   <form method="POST" enctype="multipart/form-data" class="row g-3 align-items-end">
-    <div class="col-md-6 col-lg-3">
+    <input type="hidden" name="return_search" value="{{ search }}">
+    <input type="hidden" name="return_status" value="{{ status_filter }}">
+    <input type="hidden" name="return_sort" value="{{ sort }}">
+    <input type="hidden" name="return_per_page" value="{{ per_page }}">
+    <input type="hidden" name="return_page" value="{{ page }}">
+    <div class="col-md-3">
       <label class="form-label">Company</label>
-      <input type="text" name="company" class="form-control" required placeholder="e.g. Acme Inc">
+      <input type="text" name="company" class="form-control" required>
     </div>
-    <div class="col-md-6 col-lg-3">
-      <label class="form-label">Job URL</label>
-      <input type="url" name="link" class="form-control" required placeholder="https://…">
+    <div class="col-md-3">
+      <label class="form-label">Job link</label>
+      <input type="url" name="link" class="form-control" required>
     </div>
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-3">
       <label class="form-label">Resume (PDF)</label>
       <input type="file" name="resume" accept=".pdf,application/pdf" class="form-control" required>
     </div>
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-2">
       <label class="form-label">Deadline</label>
       <input type="date" name="deadline" class="form-control">
     </div>
-    <div class="col-12">
-      <label class="form-label">Notes <span class="fw-normal text-app-muted">(optional)</span></label>
-      <textarea name="notes" class="form-control" rows="2" placeholder="Recruiter name, next step, etc."></textarea>
+    <div class="col-md-12">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="2" placeholder="Optional"></textarea>
     </div>
-    <div class="col-12 col-sm-auto d-grid d-sm-block">
-      <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add application</button>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-success w-100">Add job</button>
     </div>
   </form>
 </div>
 
-<form method="get" class="panel panel-muted">
-  <div class="row g-2 align-items-end">
-    <div class="col-md-5 col-lg-4">
-      <label class="form-label">Search company</label>
-      <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Type to filter…">
-    </div>
-    <div class="col-md-4 col-lg-3">
-      <label class="form-label">Status</label>
-      <select name="status" class="form-select">
-        <option value="">All statuses</option>
-        {% for s in ['Under Consideration', 'Review', 'Rejected', 'Interviewing', 'Offered'] %}
-          <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ s }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-6 col-md-3 col-lg-2">
-      <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-funnel me-1"></i>Apply</button>
-    </div>
-    <div class="col-6 col-md-12 col-lg-3">
-      <a href="{{ url_for('jobs.download_excel') }}" class="btn btn-outline-secondary w-100"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export Excel</a>
+<form method="get" class="row mb-4 g-2 align-items-end">
+  <div class="col-md-3">
+    <label class="form-label small text-muted">Search company</label>
+    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Search…">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Status</label>
+    <select name="status" class="form-select">
+      <option value="">All</option>
+      {% for s in ['Under Consideration', 'Review', 'Rejected', 'Interviewing', 'Offered'] %}
+        <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Sort</label>
+    <select name="sort" class="form-select">
+      <option value="updated" {% if sort == 'updated' %}selected{% endif %}>Recently updated</option>
+      <option value="deadline" {% if sort == 'deadline' %}selected{% endif %}>Deadline</option>
+      <option value="company" {% if sort == 'company' %}selected{% endif %}>Company A–Z</option>
+      <option value="submitted" {% if sort == 'submitted' %}selected{% endif %}>Date added</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Per page</label>
+    <select name="per_page" class="form-select">
+      {% for n in [5, 10, 25, 50] %}
+      <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-1">
+    <label class="form-label small text-muted d-block">&nbsp;</label>
+    <button type="submit" class="btn btn-outline-primary w-100">Apply</button>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted d-block">&nbsp;</label>
+    <div class="dropdown w-100">
+      <button class="btn btn-outline-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">Export</button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{{ url_for('jobs.download_excel') }}">Excel (all)</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('jobs.download_csv') }}">CSV (all)</a></li>
+      </ul>
     </div>
   </div>
 </form>
 
-<div class="pipeline-strip" aria-hidden="true">
-  {% for stage in ['Bookmarked', 'Applying', 'Applied', 'Interview', 'Offer', 'Accepted'] %}
-    <span>{{ stage }}</span>
+<div class="d-flex justify-content-between align-items-center bg-white p-3 mb-4 rounded shadow-sm">
+  {% for stage in ['BOOKMARKED', 'APPLYING', 'APPLIED', 'INTERVIEWING', 'NEGOTIATING', 'ACCEPTED'] %}
+    <div class="text-center flex-fill">
+      <div class="text-muted small">{{ stage }}</div>
+    </div>
   {% endfor %}
 </div>
 
-{% if jobs %}
-  {% for job in jobs %}
-  <article class="job-row">
-    <span class="status-pill bg-{{ status_colors.get(job.status, 'secondary') }}">{{ job.status }}</span>
-    <div>
-      <h2 class="company">{{ job.company }}</h2>
-      <p class="meta mb-2">
-        <a href="{{ job.link }}" class="text-decoration-none" target="_blank" rel="noopener">Open posting <i class="bi bi-box-arrow-up-right small"></i></a>
-        <span class="mx-2 text-app-muted">·</span>
-        <span>Added {{ job.timestamp.strftime('%b %d, %Y · %I:%M %p') }}</span>
-      </p>
-      <div class="d-flex flex-wrap gap-2 mb-2">
-        <a href="{{ url_for('jobs.preview_resume', filename=job.resume_filename) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Preview resume</a>
-        <a href="{{ url_for('jobs.download_resume', filename=job.resume_filename) }}" class="btn btn-sm btn-outline-secondary">Download</a>
-        <a href="{{ url_for('jobs.export_single', job_id=job.id) }}" class="btn btn-sm btn-outline-primary">Export row</a>
+{% for job in jobs %}
+<div class="job-card position-relative p-4 mb-4 shadow-sm border rounded-4 bg-body-subtle">
+  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+    <div class="flex-grow-1">
+      <h5 class="fw-bold text-primary">{{ job.company }}</h5>
+      <p class="mb-1"><i class="bi bi-link-45deg"></i> <a href="{{ job.link }}" class="text-decoration-none" target="_blank" rel="noopener">Job link</a></p>
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <a href="{{ url_for('jobs.preview_resume', filename=job.resume_filename) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-info">Preview</a>
+        <a href="{{ url_for('jobs.download_resume', filename=job.resume_filename) }}" class="btn btn-sm btn-outline-dark">Download</a>
+        <a href="{{ url_for('jobs.export_single', job_id=job.id) }}" class="btn btn-sm btn-outline-secondary">Excel</a>
+        <a href="{{ url_for('jobs.export_single', job_id=job.id, format='csv') }}" class="btn btn-sm btn-outline-secondary">CSV</a>
+        <a href="{{ url_for('jobs.edit_application', job_id=job.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+        <form method="POST" class="d-inline" onsubmit="return confirm('Duplicate this application (copy resume)?');">
+          <input type="hidden" name="duplicate_job" value="1">
+          <input type="hidden" name="job_id" value="{{ job.id }}">
+          <input type="hidden" name="return_search" value="{{ search }}">
+          <input type="hidden" name="return_status" value="{{ status_filter }}">
+          <input type="hidden" name="return_sort" value="{{ sort }}">
+          <input type="hidden" name="return_per_page" value="{{ per_page }}">
+          <input type="hidden" name="return_page" value="{{ page }}">
+          <button type="submit" class="btn btn-sm btn-outline-secondary">Duplicate</button>
+        </form>
+        <form method="POST" class="d-inline" onsubmit="return confirm('Delete this application and its resume file?');">
+          <input type="hidden" name="delete_job" value="1">
+          <input type="hidden" name="job_id" value="{{ job.id }}">
+          <input type="hidden" name="return_search" value="{{ search }}">
+          <input type="hidden" name="return_status" value="{{ status_filter }}">
+          <input type="hidden" name="return_sort" value="{{ sort }}">
+          <input type="hidden" name="return_per_page" value="{{ per_page }}">
+          <input type="hidden" name="return_page" value="{{ page }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
       </div>
       {% if job.notes %}
-      <p class="small mb-1"><span class="text-app-muted">Notes</span> {{ job.notes }}</p>
+      <p class="mt-3 mb-0 small"><strong>Notes:</strong> {{ job.notes }}</p>
       {% endif %}
       {% if job.deadline %}
-      <p class="small mb-0 text-app-muted"><i class="bi bi-calendar-event me-1"></i>Deadline {{ job.deadline.strftime('%Y-%m-%d') }}</p>
+      <p class="mb-0 small"><i class="bi bi-calendar2-event"></i> <strong>Deadline:</strong> {{ job.deadline.strftime('%Y-%m-%d') }}</p>
       {% endif %}
+      <p class="text-muted mt-2 small mb-0">
+        Added {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}
+        {% if job.updated_at and job.updated_at != job.timestamp %}
+        · Updated {{ job.updated_at.strftime('%Y-%m-%d %H:%M') }}
+        {% endif %}
+      </p>
     </div>
-    <form method="POST" class="d-flex flex-column gap-2" style="min-width: 11rem;">
+    <form method="POST" class="d-flex flex-column align-items-stretch" style="min-width: 11rem;">
+      <input type="hidden" name="return_search" value="{{ search }}">
+      <input type="hidden" name="return_status" value="{{ status_filter }}">
+      <input type="hidden" name="return_sort" value="{{ sort }}">
+      <input type="hidden" name="return_per_page" value="{{ per_page }}">
+      <input type="hidden" name="return_page" value="{{ page }}">
       <input type="hidden" name="job_id" value="{{ job.id }}">
       <input type="hidden" name="update_status" value="1">
-      <label class="form-label small text-app-muted mb-0">Update status</label>
-      <select name="status" class="form-select form-select-sm">
+      <label class="form-label small text-muted">Status</label>
+      <select name="status" class="form-select form-select-sm mb-2">
         {% for s in ['Under Consideration', 'Review', 'Rejected', 'Interviewing', 'Offered'] %}
         <option value="{{ s }}" {% if job.status == s %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn btn-sm btn-primary">Save</button>
+      <button type="submit" class="btn btn-sm btn-outline-primary">Update status</button>
     </form>
-  </article>
-  {% endfor %}
-{% else %}
-  <div class="empty-state">
-    <i class="bi bi-inbox"></i>
-    <p class="mb-0 fw-medium">No applications match your filters.</p>
-    <p class="small text-app-muted mb-0 mt-2">Try clearing search or add your first application above.</p>
   </div>
-{% endif %}
+  <span class="position-absolute top-0 end-0 mt-3 me-3 badge bg-{{ status_colors.get(job.status, 'secondary') }}">{{ job.status }}</span>
+</div>
+{% else %}
+<p class="text-muted">No applications match your filters.</p>
+{% endfor %}
 
 {% if total_pages > 1 %}
-<nav class="mt-4" aria-label="Pagination">
-  <ul class="pagination justify-content-center flex-wrap mb-0">
+<nav>
+  <ul class="pagination justify-content-center mt-4 flex-wrap">
     {% for p in range(1, total_pages + 1) %}
       <li class="page-item {% if page == p %}active{% endif %}">
-        <a class="page-link" href="{{ url_for('jobs.dashboard', page=p, search=search, status=status_filter) }}">{{ p }}</a>
+        <a class="page-link" href="{{ url_for('jobs.dashboard', search=search, status=status_filter, sort=sort, per_page=per_page, page=p) }}">{{ p }}</a>
       </li>
     {% endfor %}
   </ul>
 </nav>
 {% endif %}
+
+<style>
+  .job-card { transition: box-shadow 0.2s ease; border-left: 4px solid rgba(13,110,253,0.15); }
+  .job-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+</style>
 {% endblock %}
 
 {% block fab %}
-<a href="#addJobForm" class="fab-add" title="Add application"><i class="bi bi-plus-lg fs-5"></i></a>
+<a href="#addJobForm" class="btn btn-primary rounded-circle fab shadow-lg" title="Add application"><i class="bi bi-plus-lg"></i></a>
 {% endblock %}
