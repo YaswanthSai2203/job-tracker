@@ -16,6 +16,9 @@ from flask_login import current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
+
 from extensions import limiter
 from models.models import Job, User, db
 from utils.mail import send_email
@@ -24,6 +27,14 @@ from utils.passwords import password_errors
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__, template_folder="../templates/auth")
+
+
+def _user_by_email(email: str):
+    """Case-insensitive match (handles legacy rows stored with mixed case)."""
+    if not email:
+        return None
+    norm = email.strip().lower()
+    return User.query.filter(func.lower(User.email) == norm).first()
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -35,8 +46,11 @@ def login():
         if not email:
             flash("Enter your email address.", "warning")
             return render_template("auth/login.html")
-        user = User.query.filter_by(email=email).first()
+        user = _user_by_email(email)
         if user and user.password and check_password_hash(user.password, password):
+            if user.email != email:
+                user.email = email
+                db.session.commit()
             login_user(user)
             return redirect(url_for("jobs.dashboard"))
         flash("Invalid email or password.", "danger")
@@ -56,12 +70,17 @@ def signup():
         if errs:
             for e in errs:
                 flash(e, "warning")
-        elif User.query.filter_by(email=email).first():
+        elif _user_by_email(email):
             flash("That email is already registered.", "warning")
         else:
             user = User(email=email, password=generate_password_hash(password))
             db.session.add(user)
-            db.session.commit()
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("That email is already registered.", "warning")
+                return render_template("auth/signup.html")
             login_user(user)
             return redirect(url_for("jobs.dashboard"))
     return render_template("auth/signup.html")
@@ -177,7 +196,7 @@ def change_password():
 def reset_request():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
-        user = User.query.filter_by(email=email).first()
+        user = _user_by_email(email)
         neutral = (
             "If an account exists for that email, reset instructions have been sent "
             "or recorded for the site operator."
@@ -229,7 +248,7 @@ def reset_token(token):
             for e in errs:
                 flash(e, "warning")
         else:
-            user = User.query.filter_by(email=email).first()
+            user = _user_by_email(email)
             if user:
                 user.password = generate_password_hash(new_password)
                 db.session.commit()

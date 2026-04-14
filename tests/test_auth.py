@@ -17,6 +17,21 @@ def test_signup_login_dashboard(client):
     assert b"Dashboard" in r.data or b"dashboard" in r.data.lower()
 
 
+def test_duplicate_email_case_insensitive(client):
+    client.post(
+        "/auth/signup",
+        data={"email": "dup@test.local", "password": "abc12345"},
+        follow_redirects=True,
+    )
+    r = client.post(
+        "/auth/signup",
+        data={"email": "DUP@test.local", "password": "xyz98765"},
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    assert b"already registered" in r.data.lower()
+
+
 def test_weak_password_rejected(client):
     r = client.post(
         "/auth/signup",
