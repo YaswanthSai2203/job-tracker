@@ -1,0 +1,18 @@
+# Local PostgreSQL for development — not for production.
+# Usage: docker compose up -d
+# Then: export DATABASE_URL=postgresql://jobtracker:jobtracker@127.0.0.1:5432/jobtracker
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: jobtracker
+      POSTGRES_PASSWORD: jobtracker
+      POSTGRES_DB: jobtracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - jobtracker_pgdata:/var/lib/postgresql/data
+
+volumes:
+  jobtracker_pgdata:
