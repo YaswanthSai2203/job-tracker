@@ -377,6 +377,21 @@ def preview_resume(filename):
     abort(404)
 
 
+@jobs_bp.route("/resume/<path:filename>")
+@login_required
+@limiter.limit("300 per minute")
+def download_resume_legacy(filename):
+    """Backward compatibility for old /resume/<file> download links."""
+    return redirect(url_for("jobs.download_resume", filename=filename))
+
+
+@jobs_bp.route("/preview_resume/<path:filename>")
+@login_required
+@limiter.limit("300 per minute")
+def preview_resume_legacy(filename):
+    return redirect(url_for("jobs.preview_resume", filename=filename))
+
+
 def _job_row_dict(job):
     return {
         "Company": job.company,
